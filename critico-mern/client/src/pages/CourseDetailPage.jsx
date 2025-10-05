@@ -406,84 +406,157 @@ const CourseDetailPage = () => {
     try {
       const problematicWords = new Set();
       const problematicContexts = [];
+      const allBiasDescriptions = [];
       
       biasesData.biases.forEach(bias => {
-        if (bias.type === 'generalización') {
-          const matches = bias.description.match(/"([^"]+)"/g);
-          if (matches) {
-            matches.forEach(match => {
-              const word = match.replace(/"/g, '').toLowerCase();
-              if (word.length < 15) {
-                problematicWords.add(word);
-              }
-            });
-          }
-          
-          const contextMatches = bias.description.match(/"\.\.\.(.*?)\.\.\."/g);
-          if (contextMatches && contextMatches.length > 0) {
-            problematicContexts.push(...contextMatches.slice(0, 2));
-          }
+        allBiasDescriptions.push(bias);
+        
+        const matches = bias.description.match(/"([^"]+)"/g);
+        if (matches) {
+          matches.forEach(match => {
+            const word = match.replace(/"/g, '').trim().toLowerCase();
+            if (word.length < 20 && !word.includes('...')) {
+              problematicWords.add(word);
+            }
+          });
+        }
+        
+        const contextMatches = bias.description.match(/"\.\.\.(.*?)\.\.\."/g);
+        if (contextMatches && contextMatches.length > 0) {
+          problematicContexts.push(...contextMatches.slice(0, 3));
         }
       });
       
-      let improvementPrompt = `🚨 TAREA: ELIMINAR TÉRMINOS ABSOLUTOS DEL TEXTO\n\n`;
+      let improvementPrompt = `🚨🚨🚨 TAREA CRÍTICA: REESCRIBIR TEXTO ELIMINANDO TÉRMINOS ABSOLUTOS 🚨🚨🚨\n\n`;
+      
+      improvementPrompt += `⚠️ INSTRUCCIÓN PRINCIPAL:\n`;
+      improvementPrompt += `Debes reescribir COMPLETAMENTE el texto de abajo, eliminando TODAS las ocurrencias de las palabras listadas.\n`;
+      improvementPrompt += `NO copies el texto tal cual. DEBES modificar cada oración que contenga estas palabras.\n`;
+      improvementPrompt += `El texto resultante NO PUEDE contener ninguna de estas palabras problemáticas.\n\n`;
       
       if (problematicWords.size > 0) {
-        improvementPrompt += `🔴 PALABRAS DETECTADAS QUE DEBES ELIMINAR:\n`;
+        improvementPrompt += `🔴 LISTA DE PALABRAS PROHIBIDAS (DEBES ELIMINARLAS TODAS):\n`;
         const wordsArray = Array.from(problematicWords);
-        wordsArray.forEach(word => {
-          improvementPrompt += `   ❌ "${word}" (en todas sus formas)\n`;
-        });
-        improvementPrompt += `\n`;
         
-        improvementPrompt += `✅ CÓMO REEMPLAZARLAS:\n`;
-        wordsArray.forEach(word => {
-          if (word === 'cada' || word === 'todas' || word === 'todos') {
-            improvementPrompt += `   • "${word} X" → "los/las X", "muchos/muchas X", "varios/varias X"\n`;
-          } else if (word === 'siempre') {
-            improvementPrompt += `   • "${word}" → "frecuentemente", "habitualmente", "en la mayoría de casos"\n`;
-          } else if (word === 'nunca' || word === 'jamás') {
-            improvementPrompt += `   • "${word}" → "raramente", "en pocos casos", "es infrecuente que"\n`;
-          } else if (word === 'ningún' || word === 'ninguna' || word === 'nadie') {
-            improvementPrompt += `   • "${word}" → "pocos", "algunos no", "es poco común que"\n`;
-          } else {
-            improvementPrompt += `   • "${word}" → usa términos más específicos o cuantificadores parciales\n`;
-          }
-        });
-        improvementPrompt += `\n`;
+        const absoluteQuantifiers = wordsArray.filter(w => 
+          ['cada', 'todo', 'todos', 'toda', 'todas', 'siempre', 'nunca', 'jamás', 'ningún', 'ninguna', 'ninguno', 'nadie', 'nada'].includes(w)
+        );
+        const otherWords = wordsArray.filter(w => !absoluteQuantifiers.includes(w));
         
-        if (problematicContexts.length > 0) {
-          improvementPrompt += `📍 FRAGMENTOS DONDE APARECEN (para referencia):\n`;
-          problematicContexts.forEach((ctx, i) => {
-            improvementPrompt += `   ${i + 1}. ${ctx}\n`;
+        if (absoluteQuantifiers.length > 0) {
+          improvementPrompt += `\n📊 CUANTIFICADORES ABSOLUTOS DETECTADOS:\n`;
+          absoluteQuantifiers.forEach(word => {
+            improvementPrompt += `   ❌ "${word}"\n`;
+          });
+          improvementPrompt += `\n✅ REGLAS DE REEMPLAZO OBLIGATORIAS:\n`;
+          absoluteQuantifiers.forEach(word => {
+            if (word === 'cada') {
+              improvementPrompt += `   • "cada X" → REEMPLAZAR POR: "los X", "las X", "algunos X", "varios X", "muchos X"\n`;
+            } else if (word === 'todo' || word === 'todos' || word === 'toda' || word === 'todas') {
+              improvementPrompt += `   • "${word}" → REEMPLAZAR POR: "la mayoría", "muchos", "varios", "gran parte"\n`;
+            } else if (word === 'siempre') {
+              improvementPrompt += `   • "${word}" → REEMPLAZAR POR: "frecuentemente", "habitualmente", "en muchos casos", "típicamente"\n`;
+            } else if (word === 'nunca' || word === 'jamás') {
+              improvementPrompt += `   • "${word}" → REEMPLAZAR POR: "raramente", "en pocos casos", "es infrecuente", "ocasionalmente no"\n`;
+            } else if (word.includes('ningún') || word.includes('ninguna') || word === 'nadie' || word === 'nada') {
+              improvementPrompt += `   • "${word}" → REEMPLAZAR POR: "pocos", "algunos no", "es poco común", "en casos limitados"\n`;
+            }
           });
           improvementPrompt += `\n`;
         }
+        
+        if (otherWords.length > 0) {
+          improvementPrompt += `\n🔍 OTRAS PALABRAS PROBLEMÁTICAS DETECTADAS:\n`;
+          otherWords.forEach(word => {
+            improvementPrompt += `   ❌ "${word}" → ELIMINAR o usar términos más precisos y cuantificables\n`;
+          });
+          improvementPrompt += `\n`;
+        }
+        
+        if (problematicContexts.length > 0) {
+          improvementPrompt += `📍 EJEMPLOS DE DÓNDE APARECEN EN EL TEXTO ORIGINAL:\n`;
+          problematicContexts.forEach((ctx, i) => {
+            improvementPrompt += `   ${i + 1}. ${ctx}\n`;
+          });
+          improvementPrompt += `   ⚠️ Estas frases DEBEN ser reescritas sin las palabras prohibidas.\n\n`;
+        }
       }
       
-      improvementPrompt += `🎯 SESGOS COMPLETOS DETECTADOS:\n`;
-      biasesData.biases.forEach((bias, index) => {
+      improvementPrompt += `\n🎯 ANÁLISIS COMPLETO DE SESGOS DETECTADOS:\n`;
+      allBiasDescriptions.forEach((bias, index) => {
         improvementPrompt += `${index + 1}. ${bias.type.toUpperCase()}: ${bias.description}\n`;
-        improvementPrompt += `   Sugerencia: ${bias.suggestion}\n\n`;
+        improvementPrompt += `   Corrección necesaria: ${bias.suggestion}\n\n`;
       });
       
       if (textCorrections && textCorrections.trim()) {
-        improvementPrompt += `📝 INSTRUCCIONES ADICIONALES DEL DOCENTE:\n${textCorrections}\n\n`;
+        improvementPrompt += `\n📝 INSTRUCCIONES ADICIONALES DEL PROFESOR:\n${textCorrections}\n\n`;
       }
       
-      improvementPrompt += `⚠️ PROCESO DE CORRECCIÓN:\n`;
-      improvementPrompt += `1. Lee el texto completo línea por línea\n`;
-      improvementPrompt += `2. Identifica CADA ocurrencia de las palabras problemáticas listadas arriba\n`;
-      improvementPrompt += `3. Reemplázalas según las reglas de reemplazo sugeridas\n`;
-      improvementPrompt += `4. Mantén el significado original, solo cambia las palabras absolutas\n`;
-      improvementPrompt += `5. Conserva la estructura y formato del texto (5×8 si aplica)\n\n`;
-      
-      improvementPrompt += `📄 TEXTO ORIGINAL A CORREGIR:\n\n${previewText.content}`;
+      improvementPrompt += `\n⚠️⚠️⚠️ PASOS OBLIGATORIOS PARA LA CORRECCIÓN ⚠️⚠️⚠️\n`;
+      improvementPrompt += `1. Lee CADA LÍNEA del texto original\n`;
+      improvementPrompt += `2. Busca CADA OCURRENCIA de las palabras de la lista de prohibidas\n`;
+      improvementPrompt += `3. REESCRIBE la oración completa usando los reemplazos sugeridos\n`;
+      improvementPrompt += `4. Verifica que el texto resultante NO contenga NINGUNA palabra prohibida\n`;
+      improvementPrompt += `5. Mantén el formato 5×8 (5 párrafos de 8 líneas) y la estructura del contenido\n`;
+      improvementPrompt += `6. Conserva los ejemplos, glosario y secciones especiales\n\n`;
       
       const payload = {
-        ...generateTextForm,
-        correcciones: improvementPrompt
+        tema: generateTextForm.tema,
+        publico: generateTextForm.publico,
+        nivel: generateTextForm.nivel,
+        proposito: generateTextForm.proposito,
+        ventanaInicio: generateTextForm.ventanaInicio,
+        ventanaFin: generateTextForm.ventanaFin,
+        idioma: generateTextForm.idioma,
+        
+        textoOriginal: previewText.content,
+        
+        sesgosDetectados: biasesData.biases.map(bias => ({
+          tipo: bias.type,
+          descripcion: bias.description,
+          sugerencia: bias.suggestion,
+          severidad: bias.severity,
+          ubicacion: bias.location,
+          palabrasProblematicas: (() => {
+            const normalizedProblematic = Array.isArray(bias.problematicWords)
+              ? bias.problematicWords
+                  .map(word => (typeof word === 'string' ? word.trim().toLowerCase() : ''))
+                  .filter(word => word.length > 0)
+              : [];
+
+            if (normalizedProblematic.length > 0) {
+              return Array.from(new Set(normalizedProblematic));
+            }
+
+            if (bias.location && bias.location.includes('término(s) detectado(s):')) {
+              const matches = bias.location.match(/"([^"]+)"/g);
+              if (matches) {
+                return Array.from(new Set(matches
+                  .map(m => m.replace(/"/g, '').trim().toLowerCase())
+                  .filter(w => w.length > 0)));
+              }
+            }
+            const descMatches = bias.description.match(/"([^"]+)"/g);
+            if (descMatches) {
+              return Array.from(new Set(descMatches
+                .map(m => m.replace(/"/g, '').trim().toLowerCase())
+                .filter(w => w.length < 20 && w.length > 0 && !w.includes('...'))));
+            }
+            return [];
+          })()
+        })),
+        
+        instruccionesDocente: textCorrections && textCorrections.trim() 
+          ? textCorrections 
+          : null
       };
+
+      console.log('📤 Payload a enviar (generación):', {
+        ...payload,
+        textoOriginal: payload.textoOriginal ? `${payload.textoOriginal.substring(0, 100)}...` : 'NO',
+        sesgosDetectados: payload.sesgosDetectados ? `${payload.sesgosDetectados.length} sesgos` : 'NO'
+      });
+      console.log('📊 Detalle de sesgos:', payload.sesgosDetectados);
 
       const previousBiasCount = biasesData.biases.length;
 
