@@ -552,6 +552,122 @@ FORMATO: Usa un tono académico pero cercano, como un tutor que busca ayudar al 
   }
 }
 
+async function generateBiasDidacticPack(config) {
+  try {
+    console.log('📤 Solicitando informe didáctico de sesgos a CORA...');
+
+    const endpoint = `${CORA_AGENT_URL}/api/v1/chat/completions`;
+
+    const {
+      tema,
+      publico,
+      nivel,
+      proposito,
+      ventanaInicio,
+      ventanaFin,
+      idioma,
+      pregunta,
+      respuestaEstudiante,
+      textoContexto,
+      sesgosDetectados = [],
+      puntuacion,
+      nivelCalidad,
+      recomendaciones = []
+    } = config;
+
+    const resumenSesgos = sesgosDetectados.length === 0
+      ? 'Sin sesgos detectados'
+      : sesgosDetectados.map(s => {
+          const parts = [];
+          if (s.tag) parts.push(s.tag);
+          if (s.type) parts.push(s.type);
+          if (s.description) parts.push(s.description);
+          return `- ${parts.join(' | ')}`;
+        }).join('\n');
+
+    const recomendacionesTexto = recomendaciones.length > 0
+      ? recomendaciones.map((r, idx) => `${idx + 1}. ${r}`).join('\n')
+      : 'Sin recomendaciones adicionales.';
+
+    const contextoTexto = textoContexto ? textoContexto.substring(0, 1200) : '';
+
+    // ✅ REPORTE DE SESGOS - Análisis específico de la respuesta del estudiante
+    const userMessage = `Analiza los sesgos en la respuesta del estudiante y genera un reporte educativo.
+
+PREGUNTA:
+${pregunta}
+
+RESPUESTA DEL ESTUDIANTE:
+"${respuestaEstudiante}"
+
+TEXTO BASE:
+${contextoTexto}
+
+ANÁLISIS AUTOMÁTICO:
+${resumenSesgos}
+Puntuación: ${puntuacion}/${config.maxScore || 12} | Nivel: ${nivelCalidad}
+
+GENERA UN REPORTE que explique:
+
+1. ¿Qué sesgos tiene esta respuesta específica?
+   - Menciona lo que el estudiante escribió literalmente
+   - Compara con lo que debería haber escrito según el texto base
+
+2. ¿Por qué son problemáticos estos sesgos?
+   - Qué conceptos clave del texto ignoró
+   - Qué errores de razonamiento cometió
+
+3. ¿Cómo puede mejorar el estudiante?
+   - Pasos concretos para corregir la respuesta
+   - Ejemplos de cómo reescribir usando conceptos del texto
+
+El reporte debe ser claro, directo y enfocado EN ESTA RESPUESTA.
+NO hagas un texto genérico sobre sesgos en general.
+
+Público: ${publico} | Nivel: ${nivel} | Idioma: ${idioma}
+
+${recomendaciones.length > 0 ? `Recomendaciones:\n${recomendacionesTexto}` : ''}`;
+
+    const requestBody = {
+      messages: [
+        {
+          role: 'user',
+          content: userMessage
+        }
+      ],
+      stream: false,
+      include_retrieval_info: false,
+      include_functions_info: false,
+      include_guardrails_info: false
+    };
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${CORA_API_KEY}`,
+        'X-Chatbot-ID': CORA_CHATBOT_ID
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    console.log('📥 Respuesta recibida:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Error de CORA en informe didáctico:', errorText);
+      throw new Error(`Error del agente CORA (${response.status}): ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log('✅ Informe didáctico de sesgos generado correctamente');
+    return data;
+  } catch (error) {
+    console.error('❌ Error en generateBiasDidacticPack:', error);
+    throw error;
+  }
+}
+
 /**
  * Genera respuesta del tutor personal usando CORA
  * @param {Object} config - Configuración
@@ -620,6 +736,7 @@ module.exports = {
   generateEducationalText,
   generateQuestions,
   generateFeedback,
+  generateBiasDidacticPack,
   generateTutorResponse,
   __testables: {
     replaceProhibitedWords,

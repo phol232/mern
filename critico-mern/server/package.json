@@ -11,7 +11,8 @@
     "test:coverage": "jest --runInBand --coverage",
     "test:ci": "jest --runInBand --coverage --ci",
     "db:structure": "node scripts/seed.js",
-    "db:reset": "node scripts/seed.js --drop"
+    "db:reset": "node scripts/seed.js --drop",
+    "db:seed": "node scripts/seed-data.js"
   },
   "keywords": [],
   "author": "",

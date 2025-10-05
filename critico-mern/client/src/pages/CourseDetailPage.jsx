@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import client from '../api/client';
+import client from '../api/client.js';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import './CourseDetailPage.css';
 
@@ -404,13 +404,11 @@ const CourseDetailPage = () => {
     setTextGeneratingError(null);
 
     try {
-        // Extraer palabras problemáticas dinámicamente de los sesgos detectados
       const problematicWords = new Set();
       const problematicContexts = [];
       
       biasesData.biases.forEach(bias => {
         if (bias.type === 'generalización') {
-          // Extraer palabras entre comillas del description
           const matches = bias.description.match(/"([^"]+)"/g);
           if (matches) {
             matches.forEach(match => {
@@ -421,7 +419,6 @@ const CourseDetailPage = () => {
             });
           }
           
-          // Extraer contextos si están disponibles
           const contextMatches = bias.description.match(/"\.\.\.(.*?)\.\.\."/g);
           if (contextMatches && contextMatches.length > 0) {
             problematicContexts.push(...contextMatches.slice(0, 2));
@@ -431,7 +428,6 @@ const CourseDetailPage = () => {
       
       let improvementPrompt = `🚨 TAREA: ELIMINAR TÉRMINOS ABSOLUTOS DEL TEXTO\n\n`;
       
-      // Mostrar las palabras problemáticas detectadas
       if (problematicWords.size > 0) {
         improvementPrompt += `🔴 PALABRAS DETECTADAS QUE DEBES ELIMINAR:\n`;
         const wordsArray = Array.from(problematicWords);
@@ -440,7 +436,6 @@ const CourseDetailPage = () => {
         });
         improvementPrompt += `\n`;
         
-        // Mostrar reglas de reemplazo según las palabras encontradas
         improvementPrompt += `✅ CÓMO REEMPLAZARLAS:\n`;
         wordsArray.forEach(word => {
           if (word === 'cada' || word === 'todas' || word === 'todos') {
@@ -457,7 +452,6 @@ const CourseDetailPage = () => {
         });
         improvementPrompt += `\n`;
         
-        // Mostrar ejemplos de contextos donde aparecen
         if (problematicContexts.length > 0) {
           improvementPrompt += `📍 FRAGMENTOS DONDE APARECEN (para referencia):\n`;
           problematicContexts.forEach((ctx, i) => {
@@ -484,10 +478,8 @@ const CourseDetailPage = () => {
       improvementPrompt += `4. Mantén el significado original, solo cambia las palabras absolutas\n`;
       improvementPrompt += `5. Conserva la estructura y formato del texto (5×8 si aplica)\n\n`;
       
-      // Pasar el texto original
       improvementPrompt += `📄 TEXTO ORIGINAL A CORREGIR:\n\n${previewText.content}`;
       
-      // Combinar con la configuración original
       const payload = {
         ...generateTextForm,
         correcciones: improvementPrompt
@@ -495,13 +487,10 @@ const CourseDetailPage = () => {
 
       const previousBiasCount = biasesData.biases.length;
 
-      // Regenerar el texto
       const { data } = await client.post(`/texts/preview/${selectedTopicForTexts.id}`, payload);
 
-      // Actualizar el texto en preview
       setPreviewText(data.text);
 
-      // Re-analizar sesgos automáticamente
       const { data: newBiasData } = await client.post('/biases/analyze-content', {
         content: data.text.content
       });
@@ -511,12 +500,10 @@ const CourseDetailPage = () => {
 
       setBiasesData(newBiasData);
 
-      // Volver a la vista de preview para mostrar el texto mejorado
       setGenerateTextStep('preview');
 
       alert(`✅ Texto regenerado exitosamente!\n\n📊 Sesgos: ${previousBiasCount} → ${newBiasCount} (${improvement > 0 ? '✓ -' : ''}${Math.abs(improvement)})\n📈 Calidad: ${newBiasData.quality.score}/100 (${newBiasData.quality.level})\n\n💡 Puedes volver a analizar sesgos para verificar las mejoras`);
       
-      // Limpiar instrucciones
       setTextCorrections('');
     } catch (error) {
       console.error('Error regenerando texto:', error);
@@ -698,7 +685,6 @@ const CourseDetailPage = () => {
     setTextGeneratingError(null);
 
     try {
-      // Extraer TODAS las palabras problemáticas específicas de TODOS los sesgos
       const problematicWords = new Set();
       const problematicContexts = [];
       const allBiasDescriptions = [];
@@ -706,26 +692,22 @@ const CourseDetailPage = () => {
       biasesData.biases.forEach(bias => {
         allBiasDescriptions.push(bias);
         
-        // Extraer palabras entre comillas de cualquier tipo de sesgo
         const matches = bias.description.match(/"([^"]+)"/g);
         if (matches) {
           matches.forEach(match => {
             const word = match.replace(/"/g, '').trim().toLowerCase();
-            // Solo palabras individuales o frases cortas (no fragmentos largos de contexto)
             if (word.length < 20 && !word.includes('...')) {
               problematicWords.add(word);
             }
           });
         }
         
-        // Extraer contextos donde aparecen
         const contextMatches = bias.description.match(/"\.\.\.(.*?)\.\.\."/g);
         if (contextMatches && contextMatches.length > 0) {
           problematicContexts.push(...contextMatches.slice(0, 3));
         }
       });
       
-      // Construir prompt ULTRA ESPECÍFICO Y DIRECTO
       let improvementPrompt = `🚨🚨🚨 TAREA CRÍTICA: REESCRIBIR TEXTO ELIMINANDO TÉRMINOS ABSOLUTOS 🚨🚨🚨\n\n`;
       
       improvementPrompt += `⚠️ INSTRUCCIÓN PRINCIPAL:\n`;
@@ -737,7 +719,6 @@ const CourseDetailPage = () => {
         improvementPrompt += `🔴 LISTA DE PALABRAS PROHIBIDAS (DEBES ELIMINARLAS TODAS):\n`;
         const wordsArray = Array.from(problematicWords);
         
-        // Agrupar por tipo para dar reglas específicas
         const absoluteQuantifiers = wordsArray.filter(w => 
           ['cada', 'todo', 'todos', 'toda', 'todas', 'siempre', 'nunca', 'jamás', 'ningún', 'ninguna', 'ninguno', 'nadie', 'nada'].includes(w)
         );
@@ -800,7 +781,6 @@ const CourseDetailPage = () => {
       improvementPrompt += `5. Mantén el formato 5×8 (5 párrafos de 8 líneas) y la estructura del contenido\n`;
       improvementPrompt += `6. Conserva los ejemplos, glosario y secciones especiales\n\n`;
       
-      // Construir payload en el formato que el agente CORA espera
       const payload = {
         tema: textToRegenerate.title || 'Marco Teorico',
         publico: textToRegenerate.metadata?.publico || 'estudiantes de ingenieria',
@@ -810,18 +790,14 @@ const CourseDetailPage = () => {
         ventanaFin: textToRegenerate.metadata?.ventana?.split('-')[1] || '2025',
         idioma: textToRegenerate.metadata?.idioma || 'español',
         
-        // ✅ NUEVO: Enviar texto original separado
         textoOriginal: textToRegenerate.content,
         
-        // ✅ NUEVO: Enviar sesgos estructurados como espera el agente
         sesgosDetectados: biasesData.biases.map(bias => ({
           tipo: bias.type,
           descripcion: bias.description,
           sugerencia: bias.suggestion,
           severidad: bias.severity,
           ubicacion: bias.location,
-          // ✅ Usar el campo problematicWords que viene del backend si existe
-          // Si no, intentar extraer de location o description
           palabrasProblematicas: (() => {
             const normalizedProblematic = Array.isArray(bias.problematicWords)
               ? bias.problematicWords
@@ -833,7 +809,6 @@ const CourseDetailPage = () => {
               return Array.from(new Set(normalizedProblematic));
             }
 
-            // Extraer de location si tiene el formato: 'X término(s) detectado(s): "palabra1", "palabra2"'
             if (bias.location && bias.location.includes('término(s) detectado(s):')) {
               const matches = bias.location.match(/"([^"]+)"/g);
               if (matches) {
@@ -842,7 +817,6 @@ const CourseDetailPage = () => {
                   .filter(w => w.length > 0)));
               }
             }
-            // Fallback: extraer de description
             const descMatches = bias.description.match(/"([^"]+)"/g);
             if (descMatches) {
               return Array.from(new Set(descMatches
@@ -853,7 +827,6 @@ const CourseDetailPage = () => {
           })()
         })),
         
-        // ✅ NUEVO: Instrucciones del docente separadas
         instruccionesDocente: regenerateInstructions && regenerateInstructions.trim() 
           ? regenerateInstructions 
           : null
@@ -868,20 +841,16 @@ const CourseDetailPage = () => {
 
       const previousBiasCount = biasesData.biases.length;
 
-      // Usar el topic ID del texto o el topic seleccionado actualmente
       const topicId = selectedTopicForTexts?.id || textToRegenerate.topic || textToRegenerate.topicId;
       
       if (!topicId) {
         throw new Error('No se pudo determinar el tema del texto');
       }
 
-      // Regenerar el texto
       const { data } = await client.post(`/texts/preview/${topicId}`, payload);
 
-      // Actualizar el texto regenerado
       setTextToRegenerate({ ...textToRegenerate, content: data.text.content });
 
-      // Re-analizar sesgos automáticamente
       const { data: newBiasData } = await client.post('/biases/analyze-content', {
         content: data.text.content
       });
@@ -908,7 +877,6 @@ const CourseDetailPage = () => {
     setRegenerateStep('preview');
   };
 
-  // ✅ NUEVO: Guardar el texto corregido en la base de datos
   const handleSaveCorrectedText = async () => {
     if (!textToRegenerate?.content) {
       alert('No hay texto para guardar');
@@ -935,7 +903,6 @@ const CourseDetailPage = () => {
         source: 'cora-corrected'
       };
 
-      // Si el texto ya existe, actualizarlo; si no, crear uno nuevo
       if (textToRegenerate.id || textToRegenerate._id) {
         const textId = textToRegenerate.id || textToRegenerate._id;
         await client.patch(`/texts/${textId}`, payload);
@@ -945,10 +912,8 @@ const CourseDetailPage = () => {
         alert('✅ Texto corregido guardado como nuevo');
       }
 
-      // Recargar la lista de textos
       await loadTextsForTopic(topicId);
       
-      // Cerrar el modal
       handleCloseRegenerateModal();
     } catch (error) {
       console.error('Error guardando texto corregido:', error);
@@ -959,7 +924,6 @@ const CourseDetailPage = () => {
     }
   };
 
-  // Función legacy (se puede eliminar después)
   const handleRegenerateTextOld = (text) => {
 
     setGenerateTextForm({

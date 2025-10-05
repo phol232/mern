@@ -7,26 +7,16 @@ class BiasService {
     this.factCheckUrl = 'https://factchecktools.googleapis.com/v1alpha1/claims:search';
   }
 
-  /**
-   * Analiza sesgos en un texto y los guarda en la BD
-   * @param {string} text - Texto a analizar
-   * @param {string} relatedTo - 'text' o 'attempt'
-   * @param {ObjectId} relatedId - ID del documento relacionado
-   * @param {ObjectId} userId - ID del usuario que solicita el análisis
-   */
   async analyzeBiasesAndSave(text, relatedTo, relatedId, userId) {
     try {
-      // 1. Eliminar análisis previos del mismo documento
       await Bias.deleteMany({ relatedTo, relatedId });
 
-      // 2. Analizar sesgos usando SOLO Google Fact Check
       if (!this.factCheckApiKey) {
         throw new Error('Google Fact Check API key no configurada');
       }
 
       const biasesData = await this.checkFactsWithGoogle(text);
 
-      // 3. Guardar sesgos en la BD
       const savedBiases = [];
       for (const biasData of biasesData) {
         const bias = new Bias({
@@ -39,7 +29,6 @@ class BiasService {
         savedBiases.push(bias);
       }
 
-      // 4. Obtener estadísticas y calidad
       const statistics = await Bias.getStatistics(relatedTo, relatedId);
       const quality = await Bias.assessQuality(relatedTo, relatedId);
 
@@ -54,9 +43,6 @@ class BiasService {
     }
   }
 
-  /**
-   * Obtiene sesgos guardados de un documento
-   */
   async getBiases(relatedTo, relatedId) {
     try {
       const biases = await Bias.find({ relatedTo, relatedId })
@@ -72,9 +58,6 @@ class BiasService {
     }
   }
 
-  /**
-   * Marca un sesgo como resuelto
-   */
   async resolveBias(biasId, note) {
     try {
       const bias = await Bias.findById(biasId);
@@ -94,22 +77,14 @@ class BiasService {
     }
   }
 
-  /**
-   * Análisis principal de sesgos (HÍBRIDO OPTIMIZADO)
-   * LOCAL: Sesgos de pensamiento crítico, estilo y retórica
-   * GOOGLE: Solo verificación de hechos y datos concretos
-   */
   async analyzeBiases(text) {
     const allBiases = [];
 
-    // 1. ANÁLISIS LOCAL - Detección de sesgos cognitivos y retóricos
     console.log('🧠 Analizando sesgos de pensamiento crítico (análisis local)...');
     const localBiases = this.analyzeLocalPatterns(text);
     allBiases.push(...localBiases);
     console.log(`   ✅ ${localBiases.length} sesgo(s) cognitivos detectados`);
 
-    // 2. GOOGLE API - Solo para verificación de hechos/datos específicos
-    // Solo ejecutar si hay claims verificables (números, fechas, estadísticas)
     const hasVerifiableClaims = this.hasVerifiableClaims(text);
     
     if (hasVerifiableClaims && process.env.GOOGLE_FACT_CHECK_API_KEY) {
@@ -129,16 +104,12 @@ class BiasService {
     return allBiases;
   }
 
-  /**
-   * Detecta si el texto tiene claims verificables (para Google API)
-   */
   hasVerifiableClaims(text) {
-    // Buscar indicadores de datos verificables
     const verifiablePatterns = [
-      /\d+%/g,                          // Porcentajes
-      /\d+\s*(millones?|miles?|billones?)/gi, // Números grandes
-      /en\s+\d{4}/g,                    // Años
-      /según\s+\w+/gi,                  // Referencias a fuentes
+      /\d+%/g,                          
+      /\d+\s*(millones?|miles?|billones?)/gi, 
+      /en\s+\d{4}/g,                    
+      /según\s+\w+/gi,                  
       /estudios?\s+(muestran?|revelan?|indican?)/gi,
       /datos?\s+de/gi,
       /estadísticas?\s/gi,
@@ -148,11 +119,6 @@ class BiasService {
     return verifiablePatterns.some(pattern => pattern.test(text));
   }
 
-  /**
-   * Genera estadísticas agregadas de sesgos
-   * @param {Array} biases - Array de sesgos
-   * @returns {Object} - Estadísticas
-   */
   generateBiasStatistics(biases) {
     const stats = {
       total: biases.length,
@@ -168,7 +134,6 @@ class BiasService {
     let maxTypeCount = 0;
     
     biases.forEach(bias => {
-      // Contar por tipo
       const type = bias.type || 'otro';
       stats.byType[type] = (stats.byType[type] || 0) + 1;
       
@@ -177,11 +142,9 @@ class BiasService {
         stats.mostCommonType = type;
       }
       
-      // Contar por severidad
       const severity = bias.severity || 'media';
       stats.bySeverity[severity]++;
       
-      // Sumar confianza
       totalConfidence += (bias.confidence || 0);
     });
 
@@ -190,11 +153,6 @@ class BiasService {
     return stats;
   }
 
-  /**
-   * Determina el nivel de calidad del texto basado en sesgos
-   * @param {Array} biases - Array de sesgos
-   * @returns {Object} - Nivel de calidad
-   */
   assessTextQuality(biases) {
     if (biases.length === 0) {
       return {
@@ -208,11 +166,9 @@ class BiasService {
     const highSeverity = stats.bySeverity.alta || 0;
     const mediumSeverity = stats.bySeverity.media || 0;
     
-    // Calcular puntaje (0-100)
     let score = 100;
-    score -= (highSeverity * 15);  // -15 por cada sesgo alto
-    score -= (mediumSeverity * 8);  // -8 por cada sesgo medio
-    score -= ((stats.bySeverity.baja || 0) * 3);  // -3 por cada sesgo bajo
+    score -= (highSeverity * 15);  
+    score -= (mediumSeverity * 8);  
     score = Math.max(0, score);
 
     let level, message;
@@ -236,27 +192,18 @@ class BiasService {
     return { level, score, message, stats };
   }
 
-  /**
-   * Análisis LOCAL de patrones de pensamiento crítico
-   * Sistema robusto de detección de sesgos cognitivos y retóricos
-   */
   analyzeLocalPatterns(text) {
     const biases = [];
     const lowerText = text.toLowerCase();
     const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 10);
     const wordCount = text.split(/\s+/).length;
     
-    // === SESGOS COGNITIVOS ===
-    
-    // 1. Generalizaciones absolutas ⭐ (MUY IMPORTANTE)
     const absolutePattern = /\b(todos?|todas?|nadie|siempre|nunca|cada|ningún[oa]?|jamás|cualquier[a]?|totalmente|completamente|absolutamente)\b/gi;
     const absoluteTerms = text.match(absolutePattern);
     
     if (absoluteTerms && absoluteTerms.length > 0) {
-      // Obtener palabras únicas (sin duplicados)
       const uniqueWords = [...new Set(absoluteTerms.map(t => t.toLowerCase()))];
       
-      // Buscar contexto de cada término para mostrar ejemplos
       const contexts = [];
       const regex = new RegExp(`\\b(todos?|todas?|nadie|siempre|nunca|cada|ningún[oa]?|jamás|cualquier[a]?|totalmente|completamente|absolutamente)\\b`, 'gi');
       let match;
@@ -270,7 +217,6 @@ class BiasService {
         count++;
       }
       
-      // ✅ NUEVO: Incluir lista clara de palabras problemáticas
       const wordsString = uniqueWords.map(w => `"${w}"`).join(', ');
       
       biases.push({
@@ -281,12 +227,10 @@ class BiasService {
         suggestion: 'Evita generalizaciones. Usa términos más precisos: "algunos", "muchos", "frecuentemente", "la mayoría", "en muchos casos"',
         severity: 'alta',
         source: 'Patrón local: Generalización absoluta',
-        // ✅ NUEVO: Campo específico con palabras problemáticas para fácil extracción
         palabrasProblematicas: uniqueWords
       });
     }
     
-    // 2. Lenguaje emocional/cargado ⭐
     const emotionalWords = text.match(/\b(odio|odiar|amo|amar|terrible|perfecto|perfecta|horrible|maravilloso|increíble|espantoso|fantástico|pésimo|pésima|deplorable|excelente|magnífico|desastroso|catastrófico)\b/gi);
     if (emotionalWords && emotionalWords.length > 1) {
       biases.push({
@@ -300,7 +244,6 @@ class BiasService {
       });
     }
     
-    // 3. Falta de evidencia/fuentes ⭐⭐
     const evidenceMarkers = text.match(/\b(según|de acuerdo con|estudios?|estudio de|investigación|investigaciones|fuente|fuentes|datos?|estadística|estadísticas|informe|informes|experto|expertos|investigador|análisis|encuesta)\b/gi);
     const hasEvidence = evidenceMarkers && evidenceMarkers.length > 0;
     
@@ -316,7 +259,6 @@ class BiasService {
       });
     }
     
-    // 4. Lenguaje polarizado/dogmático ⭐
     const polarizedWords = text.match(/\b(obviamente|claramente|indudablemente|sin duda|evidentemente|es obvio que|está claro que|es indiscutible|no hay duda|por supuesto|definitivamente)\b/gi);
     if (polarizedWords && polarizedWords.length > 0) {
       biases.push({
@@ -330,7 +272,6 @@ class BiasService {
       });
     }
     
-    // 5. Ataques ad hominem ⭐⭐⭐
     const attackWords = text.match(/\b(idiota|idiotas|estúpido|estúpida|tonto|tonta|incompetente|corrupto|corrupta|mentiroso|mentirosa|imbécil|ignorante|ignorantes|mediocre|inútil)\b/gi);
     if (attackWords && attackWords.length > 0) {
       biases.push({
@@ -344,7 +285,6 @@ class BiasService {
       });
     }
     
-    // 6. Sesgo de selección ⭐
     const selectiveWords = text.match(/\b(solo|sólo|únicamente|exclusivamente|solamente|nada más|tan solo)\b/gi);
     if (selectiveWords && selectiveWords.length > 2 && !hasEvidence) {
       biases.push({
@@ -358,7 +298,6 @@ class BiasService {
       });
     }
     
-    // 7. Falsa dicotomía (blanco o negro)
     const dichotomyPatterns = text.match(/\b(o\s+\w+\s+o\s+\w+|blanco o negro|bueno o malo|correcto o incorrecto|todo o nada|conmigo o contra mí)\b/gi);
     if (dichotomyPatterns && dichotomyPatterns.length > 1) {
       biases.push({
@@ -372,7 +311,6 @@ class BiasService {
       });
     }
     
-    // 8. Apelación a la tradición/autoridad sin fundamento
     const authorityAppeal = text.match(/\b(siempre se ha hecho así|desde siempre|es tradición|históricamente|todo el mundo sabe|es de sentido común)\b/gi);
     if (authorityAppeal && authorityAppeal.length > 0) {
       biases.push({
@@ -386,7 +324,6 @@ class BiasService {
       });
     }
     
-    // 9. Pendiente resbaladiza (slippery slope)
     const slopePatterns = text.match(/\b(si\s+\w+\s+entonces|esto llevará a|terminará en|el siguiente paso será|inevitablemente)\b/gi);
     const hasCausalChain = slopePatterns && slopePatterns.length > 2 && !hasEvidence;
     if (hasCausalChain) {
@@ -401,7 +338,6 @@ class BiasService {
       });
     }
     
-    // 10. Uso excesivo de signos de exclamación (indicador de tono emocional)
     const exclamations = (text.match(/!/g) || []).length;
     if (exclamations > 3 && sentences.length < 10) {
       biases.push({
@@ -418,10 +354,6 @@ class BiasService {
     return biases;
   }
 
-  /**
-   * Verifica afirmaciones usando Google Fact Check Tools API
-   * Analiza oraciones del texto para detectar desinformación verificada externamente
-   */
   async checkFactsWithGoogle(text) {
     if (!this.factCheckApiKey) {
       throw new Error('Google Fact Check API key no configurada');
@@ -430,13 +362,11 @@ class BiasService {
     try {
       const biases = [];
       
-      // Dividir texto en oraciones
       const sentences = text.match(/[^.!?]+[.!?]+/g) || [];
       
-      // Filtrar oraciones significativas (mínimo 5 palabras)
       const significantSentences = sentences
         .filter(s => s.split(/\s+/).length >= 5)
-        .slice(0, 5); // Analizar hasta 5 oraciones
+        .slice(0, 5); 
       
       console.log(`🔍 Analizando ${significantSentences.length} oraciones con Google Fact Check API...`);
       
@@ -454,15 +384,13 @@ class BiasService {
           });
           
           if (response.data.claims && response.data.claims.length > 0) {
-            // Procesar todos los claims encontrados
-            for (const claim of response.data.claims.slice(0, 2)) { // Máximo 2 por oración
+            for (const claim of response.data.claims.slice(0, 2)) { 
               const reviews = claim.claimReview || [];
               
               for (const review of reviews) {
                 const rating = review.textualRating?.toLowerCase() || '';
                 const publisherName = review.publisher?.name || 'Fuente de verificación';
                 
-                // Detectar diferentes tipos de problemas
                 let severity = 'media';
                 let biasType = 'información cuestionable';
                 
@@ -477,7 +405,6 @@ class BiasService {
                   biasType = 'información no verificada';
                 }
                 
-                // Solo agregar si es problemático
                 const isProblematic = severity === 'alta' || severity === 'media';
                 
                 if (isProblematic) {
@@ -498,7 +425,6 @@ class BiasService {
             }
           }
         } catch (apiError) {
-          // Continuar con la siguiente oración si falla una
           if (apiError.response?.status === 429) {
             console.warn('⚠️ Límite de tasa de Google Fact Check alcanzado, esperando...');
             await new Promise(resolve => setTimeout(resolve, 1000));
@@ -515,9 +441,6 @@ class BiasService {
     }
   }
 
-  /**
-   * Genera un prompt para que la IA mejore el texto eliminando sesgos
-   */
   async generateImprovementPrompt(relatedTo, relatedId, additionalInstructions = '') {
     try {
       const { biases } = await this.getBiases(relatedTo, relatedId);
@@ -557,9 +480,6 @@ class BiasService {
     }
   }
 
-  /**
-   * Obtiene estadísticas de sesgos por curso
-   */
   async getCourseStatistics(courseId) {
     try {
       const Text = require('../models/Text');
@@ -601,20 +521,35 @@ class BiasService {
     }
   }
 
-  /**
-   * Analiza sesgos en una respuesta de estudiante
-   * Especializado para respuestas a preguntas específicas
-   * @param {string} studentAnswer - Respuesta del estudiante
-   * @param {Object} question - Objeto de pregunta con tipo y contexto
-   * @param {string} textContext - Texto base del curso (opcional)
-   * @returns {Object} - Análisis de sesgos específico para la respuesta
-   */
   async analyzeStudentAnswer(studentAnswer, question, textContext = '') {
     const biases = [];
     const lowerAnswer = studentAnswer.toLowerCase();
     const sentences = studentAnswer.split(/[.!?]+/).filter(s => s.trim().length > 5);
+    const questionType = this.normalizeQuestionType(question?.tipo);
+    const normalizedQuestion = question ? { ...question, tipo: questionType } : { tipo: questionType };
+    const wordPattern = /\b[a-záéíóúñ]{3,}\b/gi;
+    const validWords = (studentAnswer.match(wordPattern) || []);
+    const totalChars = studentAnswer.trim().length;
+    const repetitionPattern = /(.)\1{4,}/g; 
+    const hasExcessiveRepetition = repetitionPattern.test(studentAnswer);
+    const randomPattern = /^[a-z]{2,}[a-z]{2,}[a-z]{2,}/i; 
+    const coherentCharsRatio = validWords.join('').length / Math.max(totalChars, 1);
+    const isGarbageResponse = hasExcessiveRepetition || coherentCharsRatio < 0.3 || validWords.length === 0;
     
-    // 1. SESGOS DE GENERALIZACIÓN (más estricto para estudiantes)
+    if (isGarbageResponse && totalChars > 10) {
+      biases.push({
+        type: 'respuesta_invalida',
+        tag: '[S-INVALID]',
+        confidence: 0.95,
+        severity: 'crítica',
+        description: 'Respuesta sin contenido válido (caracteres aleatorios o sin sentido)',
+        location: 'Respuesta completa',
+        suggestion: 'Escribe una respuesta coherente con palabras relacionadas a la pregunta y al texto base',
+        impact: 'Imposible evaluar comprensión sin contenido válido',
+        scoreImpact: 12 
+      });
+    }
+    
     const absolutePattern = /\b(todos?|todas?|nadie|siempre|nunca|cada|ningún[oa]?|jamás|cualquier[a]?|totalmente|completamente|absolutamente)\b/gi;
     const absoluteTerms = studentAnswer.match(absolutePattern);
     
@@ -634,7 +569,6 @@ class BiasService {
       });
     }
 
-    // 2. POLARIZACIÓN (dicotomías sin matiz)
     const polarizedPatterns = [
       /\b(bueno|malo)\b/gi,
       /\b(correcto|incorrecto)\b/gi,
@@ -661,7 +595,6 @@ class BiasService {
       });
     }
 
-    // 3. CAUSALIDAD SIN APOYO
     const causalityPatterns = [
       /\bporque\b/gi,
       /\bya que\b/gi,
@@ -677,7 +610,6 @@ class BiasService {
       if (matches) causalClaims += matches.length;
     });
     
-    // Buscar si hay evidencia (números, fuentes, referencias)
     const hasEvidence = /\b(según|datos?|estudio|investigación|ejemplo|caso|porcentaje|\d+%)\b/gi.test(studentAnswer);
     
     if (causalClaims >= 2 && !hasEvidence) {
@@ -693,34 +625,42 @@ class BiasService {
       });
     }
 
-    // 4. LECTURA PARCIAL (no menciona conceptos clave del texto)
     if (textContext && textContext.length > 100) {
-      // Extraer palabras clave del texto base (términos únicos relevantes)
       const keyTermsPattern = /\b[A-ZÁ-Ú][a-zá-ú]{4,}\b/g;
       const textKeyTerms = textContext.match(keyTermsPattern) || [];
-      const uniqueKeyTerms = [...new Set(textKeyTerms.slice(0, 20))]; // Primeros 20 términos únicos
-      
-      // Ver cuántos términos clave mencionó el estudiante
+      const uniqueKeyTerms = [...new Set(textKeyTerms.slice(0, 20))]; 
       const mentionedTerms = uniqueKeyTerms.filter(term => 
         new RegExp(`\\b${term}\\b`, 'i').test(studentAnswer)
       );
       
       if (mentionedTerms.length < 2 && uniqueKeyTerms.length > 5) {
+        const coverageRatio = uniqueKeyTerms.length > 0 
+          ? mentionedTerms.length / uniqueKeyTerms.length 
+          : 0;
+        const hasZeroCoverage = mentionedTerms.length === 0;
+        const severity = hasZeroCoverage ? 'alta' : 'media';
+        const scoreImpact = hasZeroCoverage ? 8 : 4;
+        const description = hasZeroCoverage
+          ? 'La respuesta ignora por completo los conceptos clave del texto base'
+          : 'Respuesta no integra suficientes conceptos clave del texto base';
+
         biases.push({
           type: 'lectura_parcial',
           tag: '[S-LECT]',
-          confidence: 0.65,
-          severity: 'media',
-          description: 'Respuesta no integra conceptos clave del texto base',
+          confidence: hasZeroCoverage ? 0.7 : 0.65,
+          severity,
+          description,
           location: 'Respuesta completa',
           suggestion: `Revisa el texto y usa términos como: ${uniqueKeyTerms.slice(0, 5).join(', ')}`,
-          impact: 'Demostrar comprensión del texto requiere usar sus conceptos principales'
+          impact: 'Demostrar comprensión del texto requiere usar sus conceptos principales',
+          scoreImpact,
+          coverageRatio: Number(coverageRatio.toFixed(2)),
+          conceptosClaveDetectados: mentionedTerms
         });
       }
     }
 
-    // 5. INFERENCIA DÉBIL (según tipo de pregunta)
-    if (question && question.tipo === 'inferencia') {
+    if (questionType === 'inferencia') {
       const hasInferenceMarkers = /\b(deduzco|interpreto|sugiere|implica|se puede concluir|esto significa)\b/gi.test(studentAnswer);
       
       if (!hasInferenceMarkers && studentAnswer.length > 50) {
@@ -737,8 +677,7 @@ class BiasService {
       }
     }
 
-    // 6. CRÍTICA SUPERFICIAL (según tipo de pregunta)
-    if (question && question.tipo === 'crítica') {
+    if (questionType === 'crítica') {
       const hasCriticalMarkers = /\b(evalúo|considero|argumento|sin embargo|por otro lado|ventaja|desventaja|limitación)\b/gi.test(studentAnswer);
       
       if (!hasCriticalMarkers && studentAnswer.length > 50) {
@@ -755,8 +694,7 @@ class BiasService {
       }
     }
 
-    // 7. APLICACIÓN LIMITADA (según tipo de pregunta)
-    if (question && question.tipo === 'aplicación') {
+    if (questionType === 'aplicación') {
       const hasApplicationMarkers = /\b(aplico|transferir|caso|ejemplo|situación|contexto nuevo|adaptaría)\b/gi.test(studentAnswer);
       
       if (!hasApplicationMarkers && studentAnswer.length > 50) {
@@ -773,10 +711,9 @@ class BiasService {
       }
     }
 
-    // 8. DESALINEACIÓN CON LA PREGUNTA
-    if (question && question.pregunta) {
+    if (normalizedQuestion && normalizedQuestion.pregunta) {
       const questionVerbs = ['explica', 'define', 'compara', 'evalúa', 'analiza', 'justifica', 'describe', 'identifica'];
-      const verbFound = questionVerbs.find(verb => question.pregunta.toLowerCase().includes(verb));
+      const verbFound = questionVerbs.find(verb => normalizedQuestion.pregunta.toLowerCase().includes(verb));
       
       if (verbFound) {
         const answerAddresses = new RegExp(`\\b${verbFound}\\b`, 'i').test(studentAnswer.slice(0, 100));
@@ -796,23 +733,33 @@ class BiasService {
       }
     }
 
-    // ESTADÍSTICAS Y CALIDAD
     const statistics = this.generateBiasStatistics(biases);
     
-    // PUNTUACIÓN ACADÉMICA (0-12)
     let score = 12;
     
+    const severityPenalty = {
+      crítica: 12,  
+      alta: 4,
+      media: 2.5,
+      baja: 1
+    };
+
     biases.forEach(bias => {
-      if (bias.severity === 'alta') score -= 2.5;
-      else if (bias.severity === 'media') score -= 1.5;
-      else score -= 0.5;
+      const penalty = bias.scoreImpact ?? severityPenalty[bias.severity] ?? 2.5;
+      score -= penalty;
     });
+
+    if (biases.length > 0) {
+      score -= 0.5; 
+    }
     
     score = Math.max(0, Math.round(score * 10) / 10);
 
-    // EVALUACIÓN CUALITATIVA
     let nivel, mensaje;
-    if (score >= 10) {
+    if (score === 0) {
+      nivel = 'inválido';
+      mensaje = 'Respuesta sin contenido válido o comprensible';
+    } else if (score >= 10) {
       nivel = 'excelente';
       mensaje = 'Respuesta bien argumentada con mínimos sesgos';
     } else if (score >= 8) {
@@ -836,13 +783,10 @@ class BiasService {
       maxScore: 12,
       nivel,
       mensaje,
-      recomendaciones: this.generateStudentRecommendations(biases, question)
+      recomendaciones: this.generateStudentRecommendations(biases, normalizedQuestion)
     };
   }
 
-  /**
-   * Genera recomendaciones específicas para el estudiante
-   */
   generateStudentRecommendations(biases, question) {
     const recommendations = [];
     
@@ -850,14 +794,12 @@ class BiasService {
       return ['¡Excelente! Tu respuesta muestra pensamiento crítico y está bien fundamentada.'];
     }
 
-    // Agrupar por tipo de sesgo
     const byType = {};
     biases.forEach(bias => {
       if (!byType[bias.type]) byType[bias.type] = [];
       byType[bias.type].push(bias);
     });
 
-    // Generar recomendaciones priorizadas
     if (byType.generalización) {
       recommendations.push('🎯 Matiza tus afirmaciones: Evita términos absolutos y cuantifica cuando sea posible.');
     }
@@ -878,8 +820,9 @@ class BiasService {
       recommendations.push('🎯 Enfócate en la pregunta: Asegúrate de responder exactamente lo que se pide.');
     }
 
-    // Recomendación final motivadora
-    if (question && question.tipo) {
+    const questionType = this.normalizeQuestionType(question?.tipo);
+
+    if (questionType) {
       const typeMessages = {
         literal: 'Las preguntas literales requieren precisión y referencias directas al texto.',
         inferencia: 'Las preguntas de inferencia necesitan razonamiento lógico más allá de lo explícito.',
@@ -887,12 +830,97 @@ class BiasService {
         aplicación: 'Las preguntas de aplicación buscan que transfieras el concepto a nuevos contextos.'
       };
       
-      if (typeMessages[question.tipo]) {
-        recommendations.push(`💡 Recuerda: ${typeMessages[question.tipo]}`);
+      if (typeMessages[questionType]) {
+        recommendations.push(`💡 Recuerda: ${typeMessages[questionType]}`);
       }
     }
 
     return recommendations;
+  }
+
+  normalizeQuestionType(rawType) {
+    if (!rawType) {
+      return 'literal';
+    }
+
+    const normalized = rawType.toString().trim().toLowerCase();
+    const withoutAccents = normalized.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+    switch (withoutAccents) {
+      case 'literal':
+        return 'literal';
+      case 'inferencial':
+      case 'inferencia':
+        return 'inferencia';
+      case 'critica':
+        return 'crítica';
+      case 'aplicacion':
+        return 'aplicación';
+      default:
+        return rawType;
+    }
+  }
+
+  parseDidacticReport(reportText = '') {
+    const clean = typeof reportText === 'string' ? reportText : '';
+    const lines = clean.split(/\r?\n/);
+    const normalize = (text) => text
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
+
+    const findIndex = (header) => lines.findIndex(line => normalize(line) === normalize(header));
+
+    const examplesIdx = findIndex('Ejemplos claros y precisos');
+    const glossaryIdx = findIndex('Glosario breve');
+    const questionsIdx = findIndex('Preguntas para reforzar');
+
+    const textEnd = examplesIdx > -1 ? examplesIdx : (glossaryIdx > -1 ? glossaryIdx : (questionsIdx > -1 ? questionsIdx : lines.length));
+    const textLines = lines.slice(0, textEnd).join('\n').trim();
+    const paragraphs = textLines ? textLines.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean) : [];
+
+    const sliceSection = (startIdx, endIdx) => {
+      if (startIdx === -1) return [];
+      const start = startIdx + 1;
+      const end = endIdx > -1 ? endIdx : lines.length;
+      return lines.slice(start, end).map(line => line.trim()).filter(line => line.length > 0);
+    };
+
+    const examplesRaw = sliceSection(examplesIdx, glossaryIdx === -1 ? (questionsIdx === -1 ? lines.length : questionsIdx) : glossaryIdx);
+    const glossaryRaw = sliceSection(glossaryIdx, questionsIdx === -1 ? lines.length : questionsIdx);
+    const questionsRaw = sliceSection(questionsIdx, -1);
+
+    const groupNumbered = (items) => {
+      const results = [];
+      let current = '';
+      items.forEach(line => {
+        if (/^\d+[\).\-]/.test(line) || /^\d+\s/.test(line)) {
+          if (current) results.push(current.trim());
+          current = line;
+        } else if (current) {
+          current += ` ${line}`;
+        } else {
+          current = line;
+        }
+      });
+      if (current) results.push(current.trim());
+      return results;
+    };
+
+    const examples = groupNumbered(examplesRaw);
+    const questions = questionsRaw.map(line => line.replace(/^\d+[\).\-]\s*/, '').trim()).filter(Boolean);
+
+    const glossary = glossaryRaw.map(line => line.replace(/^[-•]\s*/, '').trim());
+
+    return {
+      raw: clean,
+      text: textLines,
+      paragraphs,
+      examples,
+      glossary,
+      questions
+    };
   }
 }
 

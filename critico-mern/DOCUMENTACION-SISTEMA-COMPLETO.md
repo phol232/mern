@@ -806,11 +806,11 @@ DELETE /api/enrollments/:id        - Cancelar inscripción
 {
   _id: ObjectId,
   text: ObjectId (ref: Text),
-  type: String, // Tipo de sesgo detectado
+  type: String, 
   description: String,
-  location: String, // Dónde se encontró en el texto
-  severity: String, // 'baja' | 'media' | 'alta'
-  suggestion: String, // Sugerencia de corrección
+  location: String, 
+  severity: String, 
+  suggestion: String, 
   resolved: Boolean,
   resolvedAt: Date,
   createdAt: Date,

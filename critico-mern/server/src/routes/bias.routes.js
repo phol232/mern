@@ -13,6 +13,9 @@ router.post('/analyze-text/:textId', authenticate, controller.analyzeText);
 // Analizar sesgos en una respuesta de estudiante (análisis académico mejorado)
 router.post('/analyze-student-answer/:attemptId', authenticate, controller.analyzeStudentAnswer);
 
+// Guardar análisis de sesgos en la BD
+router.post('/save-student-analysis/:attemptId', authenticate, controller.saveStudentAnalysis);
+
 // Analizar sesgos en una respuesta de estudiante (método legacy)
 router.post('/analyze-attempt/:attemptId', authenticate, controller.analyzeAttempt);
 

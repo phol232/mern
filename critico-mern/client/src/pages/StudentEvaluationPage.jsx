@@ -251,7 +251,7 @@ const StudentEvaluationPage = () => {
   };
 
   // ✅ NUEVO: Función para analizar sesgos de la respuesta del estudiante
-  const handleAnalyzeBias = async (questionId) => {
+  const handleAnalyzeBias = async (questionId, regenerate = false) => {
     const attempt = questionAttempts[questionId];
     
     if (!attempt || !attempt.id) {
@@ -263,7 +263,9 @@ const StudentEvaluationPage = () => {
     setBiasError(null);
 
     try {
-      const { data } = await client.post(`/biases/analyze-student-answer/${attempt.id}`);
+      // Agregar query param ?regenerate=true si se solicita regenerar
+      const url = `/biases/analyze-student-answer/${attempt.id}${regenerate ? '?regenerate=true' : ''}`;
+      const { data } = await client.post(url);
       
       setBiasAnalysis({
         questionId,
@@ -278,6 +280,36 @@ const StudentEvaluationPage = () => {
     } finally {
       setAnalyzingBias(false);
     }
+  };
+
+  // ✅ Guardar análisis de sesgos
+  const handleSaveBiasAnalysis = async () => {
+    if (!biasAnalysis) return;
+
+    const attempt = questionAttempts[biasAnalysis.questionId];
+    if (!attempt || !attempt.id) return;
+
+    try {
+      const { data } = await client.post(`/biases/save-student-analysis/${attempt.id}`, biasAnalysis);
+
+      setBiasAnalysis({
+        ...biasAnalysis,
+        saved: true,
+        analyzedAt: data.analyzedAt
+      });
+
+      alert('✅ Análisis de sesgos guardado correctamente');
+    } catch (err) {
+      console.error('Error guardando análisis:', err);
+      alert('Error al guardar: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
+  // ✅ Regenerar análisis de sesgos
+  const handleRegenerateBiasAnalysis = async () => {
+    if (!biasAnalysis) return;
+    const questionId = biasAnalysis.questionId;
+    await handleAnalyzeBias(questionId, true); // Forzar regeneración
   };
 
   const handleAnswerChange = (questionId, value) => {
@@ -935,167 +967,55 @@ const StudentEvaluationPage = () => {
       {showBiasModal && biasAnalysis && (
         <div className="modal-overlay" onClick={() => setShowBiasModal(false)}>
           <div className="modal-content modal-large" onClick={(e) => e.stopPropagation()} style={{ maxHeight: '85vh', display: 'flex', flexDirection: 'column', maxWidth: '800px' }}>
-            <div className="modal-header" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
-              <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-                <span>🔍</span>
-                <span>Análisis de Sesgos - Tu Respuesta</span>
-              </h2>
-              <button 
-                className="modal-close" 
-                onClick={() => setShowBiasModal(false)}
-                style={{ color: 'white', fontSize: '1.5rem' }}
-              >✕</button>
-            </div>
             
-            <div className="modal-body" style={{ overflowY: 'auto', flex: 1, padding: '1.5rem', background: '#f8f9fa' }}>
-              {/* Puntuación y Nivel */}
-              <div style={{
-                background: 'white',
-                borderRadius: '12px',
-                padding: '1.5rem',
-                marginBottom: '1.5rem',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                border: '2px solid #e0e0e0'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                  <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#333' }}>📊 Puntuación Académica</h3>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <div style={{ fontSize: '2rem', fontWeight: 'bold', color: biasAnalysis.score >= 10 ? '#4caf50' : biasAnalysis.score >= 8 ? '#2196f3' : biasAnalysis.score >= 6 ? '#ff9800' : '#f44336' }}>
-                      {biasAnalysis.score}/{biasAnalysis.maxScore}
-                    </div>
-                    <span style={{
-                      padding: '0.4rem 1rem',
-                      borderRadius: '20px',
-                      fontSize: '0.85rem',
-                      fontWeight: 'bold',
-                      textTransform: 'uppercase',
-                      background: biasAnalysis.nivel === 'excelente' ? '#4caf50' :
-                                 biasAnalysis.nivel === 'bueno' ? '#2196f3' :
-                                 biasAnalysis.nivel === 'aceptable' ? '#ff9800' :
-                                 biasAnalysis.nivel === 'necesita_mejora' ? '#ff5722' : '#f44336',
-                      color: 'white'
-                    }}>
-                      {biasAnalysis.nivel.replace('_', ' ')}
-                    </span>
+            <div className="modal-header" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+              <h2>🔍 Análisis de Sesgos en tu Respuesta</h2>
+              <button className="modal-close" onClick={() => setShowBiasModal(false)} style={{ color: 'white' }}>✕</button>
+            </div>
+
+            <div className="modal-body" style={{ overflowY: 'auto', flex: 1, padding: '1.5rem' }}>
+              
+              {/* Reporte de CORA (análisis didáctico) */}
+              {biasAnalysis.didacticReport && (
+                <div style={{
+                  background: '#f8f9fa',
+                  borderRadius: '12px',
+                  padding: '1.5rem',
+                  marginBottom: '1.5rem',
+                  border: '2px solid #e3f2fd'
+                }}>
+                  <h3 style={{ margin: '0 0 1rem 0', color: '#1976d2', fontSize: '1.1rem' }}>
+                    📚 Análisis Detallado
+                  </h3>
+                  <div style={{
+                    whiteSpace: 'pre-wrap',
+                    lineHeight: '1.6',
+                    fontSize: '0.95rem',
+                    color: '#333'
+                  }}>
+                    {typeof biasAnalysis.didacticReport === 'string' 
+                      ? biasAnalysis.didacticReport 
+                      : biasAnalysis.didacticReport?.raw || biasAnalysis.didacticReport?.text || JSON.stringify(biasAnalysis.didacticReport, null, 2)
+                    }
                   </div>
                 </div>
-                <p style={{ margin: 0, color: '#666', fontSize: '0.95rem' }}>{biasAnalysis.mensaje}</p>
-              </div>
+              )}
 
-              {/* Sesgos Detectados */}
-              {biasAnalysis.biases && biasAnalysis.biases.length > 0 ? (
-                <div>
-                  <h3 style={{ marginBottom: '1rem', color: '#333', fontSize: '1.1rem' }}>
-                    ⚠️ Aspectos a Mejorar ({biasAnalysis.biases.length} detectados)
-                  </h3>
-                  
-                  {biasAnalysis.biases.map((bias, idx) => (
-                    <div key={idx} style={{
-                      background: 'white',
-                      borderRadius: '8px',
-                      padding: '1.2rem',
-                      marginBottom: '1rem',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.08)',
-                      borderLeft: `4px solid ${bias.severity === 'alta' ? '#f44336' : bias.severity === 'media' ? '#ff9800' : '#4caf50'}`
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'start', gap: '0.8rem', marginBottom: '0.8rem' }}>
-                        <span style={{
-                          padding: '0.2rem 0.6rem',
-                          background: '#f5f5f5',
-                          borderRadius: '4px',
-                          fontFamily: 'monospace',
-                          fontSize: '0.85rem',
-                          fontWeight: 'bold',
-                          color: '#d32f2f'
-                        }}>
-                          {bias.tag}
-                        </span>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 'bold', color: '#333', marginBottom: '0.3rem', fontSize: '0.95rem' }}>
-                            {bias.type.replace('_', ' ').toUpperCase()}
-                          </div>
-                          <div style={{ color: '#555', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-                            {bias.description}
-                          </div>
-                          {bias.location && (
-                            <div style={{ color: '#777', fontSize: '0.85rem', fontStyle: 'italic', marginBottom: '0.8rem' }}>
-                              📍 {bias.location}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <div style={{
-                        background: '#e8f5e9',
-                        borderRadius: '6px',
-                        padding: '0.8rem',
-                        marginTop: '0.8rem'
-                      }}>
-                        <div style={{ fontSize: '0.85rem', color: '#2e7d32', fontWeight: '500', marginBottom: '0.3rem' }}>
-                          💡 Sugerencia:
-                        </div>
-                        <div style={{ fontSize: '0.9rem', color: '#1b5e20' }}>
-                          {bias.suggestion}
-                        </div>
-                      </div>
-
-                      {bias.impact && (
-                        <div style={{ 
-                          marginTop: '0.8rem', 
-                          padding: '0.6rem', 
-                          background: '#fff3e0', 
-                          borderRadius: '4px',
-                          fontSize: '0.85rem',
-                          color: '#e65100'
-                        }}>
-                          ⚡ <strong>Impacto:</strong> {bias.impact}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
+              {/* Solo mensaje sin sesgos si aplica */}
+              {(!biasAnalysis.biases || biasAnalysis.biases.length === 0) && (
                 <div style={{
                   background: 'white',
                   borderRadius: '12px',
                   padding: '2rem',
                   textAlign: 'center',
-                  border: '2px solid #4caf50'
+                  border: '2px solid #4caf50',
+                  marginTop: '1rem'
                 }}>
                   <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✨</div>
                   <h3 style={{ color: '#4caf50', marginBottom: '0.5rem' }}>¡Excelente Trabajo!</h3>
                   <p style={{ color: '#666', margin: 0 }}>
                     Tu respuesta no presenta sesgos significativos. Muestra un buen pensamiento crítico y argumentación equilibrada.
                   </p>
-                </div>
-              )}
-
-              {/* Recomendaciones */}
-              {biasAnalysis.recomendaciones && biasAnalysis.recomendaciones.length > 0 && (
-                <div style={{
-                  background: 'white',
-                  borderRadius: '12px',
-                  padding: '1.5rem',
-                  marginTop: '1.5rem',
-                  border: '2px solid #2196f3'
-                }}>
-                  <h3 style={{ margin: '0 0 1rem 0', color: '#1976d2', fontSize: '1.1rem' }}>
-                    🎯 Recomendaciones para Mejorar
-                  </h3>
-                  <ul style={{ margin: 0, padding: '0 0 0 1.5rem', listStyle: 'none' }}>
-                    {biasAnalysis.recomendaciones.map((rec, idx) => (
-                      <li key={idx} style={{
-                        marginBottom: '0.8rem',
-                        padding: '0.8rem',
-                        background: '#e3f2fd',
-                        borderRadius: '6px',
-                        fontSize: '0.9rem',
-                        color: '#0d47a1'
-                      }}>
-                        {rec}
-                      </li>
-                    ))}
-                  </ul>
                 </div>
               )}
 
@@ -1116,14 +1036,48 @@ const StudentEvaluationPage = () => {
               </div>
             </div>
             
-            <div className="modal-footer">
-              <button
-                className="btn-submit"
-                onClick={() => setShowBiasModal(false)}
-                style={{ background: '#667eea' }}
-              >
-                ✅ Entendido
-              </button>
+            <div className="modal-footer" style={{ display: 'flex', gap: '10px', justifyContent: 'space-between' }}>
+              {/* Indicador de guardado */}
+              {biasAnalysis?.saved && biasAnalysis?.analyzedAt && (
+                <span style={{ 
+                  fontSize: '0.85rem', 
+                  color: '#666',
+                  alignSelf: 'center'
+                }}>
+                  💾 Guardado el {new Date(biasAnalysis.analyzedAt).toLocaleString('es-ES')}
+                </span>
+              )}
+              
+              {/* Botones de acción */}
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                {!biasAnalysis.saved && (
+                  <button
+                    className="btn-submit"
+                    onClick={handleSaveBiasAnalysis}
+                    style={{ background: '#10b981', flex: 1, minWidth: '150px' }}
+                  >
+                    💾 Guardar Análisis
+                  </button>
+                )}
+                
+                {biasAnalysis.saved && (
+                  <button
+                    className="btn-submit"
+                    onClick={handleRegenerateBiasAnalysis}
+                    style={{ background: '#f59e0b', flex: 1, minWidth: '150px' }}
+                  >
+                    🔄 Regenerar Análisis
+                  </button>
+                )}
+                
+                <button
+                  className="btn-submit"
+                  onClick={() => setShowBiasModal(false)}
+                  style={{ background: '#667eea', flex: 1, minWidth: '150px' }}
+                >
+                  ✅ Cerrar
+                </button>
+              </div>
             </div>
           </div>
         </div>
