@@ -63,4 +63,10 @@ const options = {
 
 const swaggerSpec = swaggerJsdoc(options);
 
+// Debug: mostrar cuántas rutas se encontraron
+if (process.env.NODE_ENV !== 'production') {
+  const paths = Object.keys(swaggerSpec.paths || {});
+  console.log(`📚 Swagger encontró ${paths.length} rutas documentadas`);
+}
+
 module.exports = swaggerSpec;
