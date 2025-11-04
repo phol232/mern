@@ -5,31 +5,183 @@ const { validateObjectId } = require('../middleware/validateObjectId');
 
 const router = express.Router();
 
-// Analizar sesgos en contenido directo (sin guardar)
+/**
+ * @swagger
+ * /biases/analyze-content:
+ *   post:
+ *     summary: Analizar sesgos en contenido directo
+ *     tags: [Biases]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Análisis de sesgos
+ */
 router.post('/analyze-content', authenticate, controller.analyzeTextContent);
 
-// Analizar sesgos en un texto guardado
+/**
+ * @swagger
+ * /biases/analyze-text/{textId}:
+ *   post:
+ *     summary: Analizar sesgos en un texto guardado
+ *     tags: [Biases]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: textId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Análisis de sesgos del texto
+ */
 router.post('/analyze-text/:textId', authenticate, validateObjectId(['textId'], 'params'), controller.analyzeText);
 
-// Analizar sesgos en una respuesta de estudiante (análisis académico mejorado)
+/**
+ * @swagger
+ * /biases/analyze-student-answer/{attemptId}:
+ *   post:
+ *     summary: Analizar sesgos en respuesta de estudiante
+ *     tags: [Biases]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: attemptId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Análisis de sesgos en respuesta
+ */
 router.post('/analyze-student-answer/:attemptId', authenticate, validateObjectId(['attemptId'], 'params'), controller.analyzeStudentAnswer);
 
-// Guardar análisis de sesgos en la BD
+/**
+ * @swagger
+ * /biases/save-student-analysis/{attemptId}:
+ *   post:
+ *     summary: Guardar análisis de sesgos de estudiante
+ *     tags: [Biases]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: attemptId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       201:
+ *         description: Análisis guardado
+ */
 router.post('/save-student-analysis/:attemptId', authenticate, validateObjectId(['attemptId'], 'params'), controller.saveStudentAnalysis);
 
-// Analizar sesgos en una respuesta de estudiante (método legacy)
+/**
+ * @swagger
+ * /biases/analyze-attempt/{attemptId}:
+ *   post:
+ *     summary: Analizar sesgos en intento (método legacy)
+ *     tags: [Biases]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: attemptId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Análisis de sesgos
+ */
 router.post('/analyze-attempt/:attemptId', authenticate, validateObjectId(['attemptId'], 'params'), controller.analyzeAttempt);
 
-// Obtener sesgos guardados
+/**
+ * @swagger
+ * /biases/{relatedTo}/{relatedId}:
+ *   get:
+ *     summary: Obtener sesgos guardados
+ *     tags: [Biases]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: relatedTo
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: relatedId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Lista de sesgos
+ */
 router.get('/:relatedTo/:relatedId', authenticate, validateObjectId(['relatedId'], 'params'), controller.getBiases);
 
-// Marcar sesgo como resuelto
+/**
+ * @swagger
+ * /biases/{biasId}/resolve:
+ *   patch:
+ *     summary: Marcar sesgo como resuelto
+ *     tags: [Biases]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: biasId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sesgo marcado como resuelto
+ */
 router.patch('/:biasId/resolve', authenticate, validateObjectId(['biasId'], 'params'), controller.resolveBias);
 
-// Estadísticas de sesgos del curso
+/**
+ * @swagger
+ * /biases/course/{courseId}/statistics:
+ *   get:
+ *     summary: Obtener estadísticas de sesgos del curso
+ *     tags: [Biases]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Estadísticas de sesgos
+ */
 router.get('/course/:courseId/statistics', authenticate, validateObjectId(['courseId'], 'params'), controller.getCourseStatistics);
 
-// Mantener compatibilidad con rutas antiguas
+/**
+ * @swagger
+ * /biases/topic/{topicId}/summary:
+ *   get:
+ *     summary: Obtener resumen de sesgos por tema
+ *     tags: [Biases]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: topicId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Resumen de sesgos
+ */
 router.get('/topic/:topicId/summary', authenticate, validateObjectId(['topicId'], 'params'), controller.getTopicSummary);
 
 module.exports = router;

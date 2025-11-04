@@ -54,42 +54,7 @@ router.post(
   controller.register
 );
 
-/**
- * @swagger
- * /auth/login:
- *   post:
- *     summary: Iniciar sesión
- *     tags: [Auth]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - email
- *               - password
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *               password:
- *                 type: string
- *     responses:
- *       200:
- *         description: Login exitoso
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 user:
- *                   type: object
- *                 token:
- *                   type: string
- *       401:
- *         description: Credenciales inválidas
- */
+
 router.post(
   '/login',
   [
@@ -99,30 +64,7 @@ router.post(
   controller.login
 );
 
-/**
- * @swagger
- * /auth/forgot-password:
- *   post:
- *     summary: Solicitar recuperación de contraseña
- *     tags: [Auth]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - email
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *     responses:
- *       200:
- *         description: Email de recuperación enviado
- *       404:
- *         description: Usuario no encontrado
- */
+
 router.post(
   '/forgot-password',
   [
