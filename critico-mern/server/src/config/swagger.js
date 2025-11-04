@@ -1,0 +1,62 @@
+const swaggerJsdoc = require('swagger-jsdoc');
+
+const options = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'Critico MERN API',
+      version: '1.0.0',
+      description: 'API para la plataforma de pensamiento crítico Critico MERN',
+      contact: {
+        name: 'API Support',
+        email: 'support@critico.com'
+      }
+    },
+    servers: [
+      {
+        url: '/api',
+        description: 'API Server'
+      }
+    ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT'
+        },
+        cookieAuth: {
+          type: 'apiKey',
+          in: 'cookie',
+          name: 'token'
+        }
+      },
+      schemas: {
+        Error: {
+          type: 'object',
+          properties: {
+            message: {
+              type: 'string'
+            },
+            details: {
+              type: 'object'
+            }
+          }
+        }
+      }
+    },
+    security: [
+      {
+        bearerAuth: []
+      },
+      {
+        cookieAuth: []
+      }
+    ]
+  },
+  apis: ['./src/routes/*.js', './src/controllers/*.js']
+};
+
+const swaggerSpec = swaggerJsdoc(options);
+
+module.exports = swaggerSpec;
