@@ -13,7 +13,9 @@ RUN npm run test:ci
 FROM node:18-alpine AS prod
 WORKDIR /app
 ENV NODE_ENV=production
-COPY --from=test /app /app
+COPY --from=deps /app/package*.json ./
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
 RUN rm -rf node_modules && npm ci --omit=dev
 EXPOSE 4000
 CMD ["npm", "start"]

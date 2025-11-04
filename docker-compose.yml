@@ -2,11 +2,12 @@ services:
   backend:
     build:
       context: ./critico-mern/server
+      target: prod
     image: critico/backend:latest
     container_name: critico-backend
     restart: unless-stopped
     environment:
-      PORT: 4000
+      PORT: 400
       NODE_ENV: production
       MONGO_URI: mongodb://root:root@mongo:27017/critico?authSource=admin
       JWT_SECRET: super-secret
@@ -22,6 +23,7 @@ services:
   frontend:
     build:
       context: ./critico-mern/client
+      target: prod
     image: critico/frontend:latest
     container_name: critico-frontend
     restart: unless-stopped

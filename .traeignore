@@ -1,0 +1,96 @@
+# ============================================
+# .traeignore - Archivos a excluir de Trae AI
+# Optimización específica para reducir tokens
+# ============================================
+
+# DOCUMENTACIÓN EXTENSA (CRÍTICO)
+# ============================================
+critico-mern/DOCUMENTACION-SISTEMA-COMPLETO.md
+critico-mern/server/README-SEED.md
+critico-mern/server/SIMPLIFICACION-RECOMENDADA.md
+README-DATABASE.md
+
+# DEPENDENCIAS Y LOCKFILES
+# ============================================
+**/node_modules/
+**/package-lock.json
+**/yarn.lock
+
+# ARCHIVOS DE CONFIGURACIÓN LARGOS
+# ============================================
+**/jest.config.js
+**/babel.config.cjs
+**/vite.config.js
+**/nginx.conf
+
+# TESTS (no necesarios para desarrollo general)
+# ============================================
+**/tests/
+**/__tests__/
+**/*.test.js
+**/*.test.jsx
+**/*.spec.js
+**/*.spec.jsx
+**/jest.setup.js
+
+# BUILD Y ARCHIVOS GENERADOS
+# ============================================
+**/dist/
+**/build/
+**/coverage/
+**/.vite/
+**/.cache/
+
+# LOGS Y TEMPORALES
+# ============================================
+**/logs/
+**/*.log
+**/*.tmp
+**/*.temp
+
+# SCRIPTS Y MIGRATIONS
+# ============================================
+**/scripts/
+**/migrations/
+**/run-seed.ps1
+**/run-seed.sh
+
+# DOCKER Y CI/CD
+# ============================================
+**/docker-compose.*.yml
+**/Dockerfile*
+**/.github/
+
+# ARCHIVOS DE DESARROLLO
+# ============================================
+**/.vscode/
+**/.idea/
+**/.DS_Store
+**/Thumbs.db
+
+# ENVIRONMENT
+# ============================================
+**/.env*
+
+# UPLOADS Y CONTENIDO GENERADO
+# ============================================
+**/uploads/
+**/generated-texts/
+**/output/
+**/samples/
+**/examples/
+
+# ESPECÍFICO DEL PROYECTO
+# ============================================
+# Archivos que pueden contener mucho texto generado
+**/training-data/
+**/corpus/
+**/datasets/
+
+# Archivos OLD y BACKUP
+**/*.OLD.*
+**/*.BACKUP.*
+
+# NOTA: Este archivo ayuda a Trae AI a procesar solo
+# los archivos esenciales, reduciendo significativamente
+# el consumo de tokens y mejorando la eficiencia.
