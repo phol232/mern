@@ -441,6 +441,7 @@ class BiasService {
     }
   }
 
+  // 🔥 VERSIÓN OPTIMIZADA - Prompt ultra-compacto para reducir tokens
   async generateImprovementPrompt(relatedTo, relatedId, additionalInstructions = '') {
     try {
       const { biases } = await this.getBiases(relatedTo, relatedId);
@@ -449,29 +450,41 @@ class BiasService {
         return null;
       }
 
-      let prompt = `Eres un experto en redacción objetiva y pensamiento crítico. Mejora el siguiente texto eliminando los sesgos detectados, manteniendo el mensaje principal pero con mayor objetividad y balance.\n\n`;
-      
-      prompt += `SESGOS DETECTADOS (${biases.length}):\n`;
-      biases.forEach((bias, index) => {
-        prompt += `${index + 1}. ${bias.type.toUpperCase()} (${Math.round(bias.confidence * 100)}% confianza) - Severidad: ${bias.severity}\n`;
-        prompt += `   Problema: ${bias.description}\n`;
-        prompt += `   Mejora sugerida: ${bias.suggestion}\n\n`;
+      // Extraer solo palabras problemáticas (máximo 10)
+      const palabrasProblematicas = new Set();
+      biases.forEach(bias => {
+        if (bias.palabrasProblematicas && bias.palabrasProblematicas.length > 0) {
+          bias.palabrasProblematicas.slice(0, 3).forEach(p => palabrasProblematicas.add(p.toLowerCase()));
+        }
       });
       
-      prompt += `INSTRUCCIONES PARA REESCRIBIR:\n`;
-      prompt += `1. Elimina generalizaciones usando términos más específicos y matizados\n`;
-      prompt += `2. Reduce el lenguaje emocional manteniendo un tono neutral\n`;
-      prompt += `3. Agrega perspectivas múltiples cuando sea apropiado\n`;
-      prompt += `4. Si faltan fuentes, indica dónde sería apropiado citarlas\n`;
-      prompt += `5. Reemplaza términos absolutos por expresiones más precisas\n`;
-      prompt += `6. Mantén la estructura y longitud similar al original\n`;
-      prompt += `7. Conserva el mensaje central pero expresado con mayor objetividad\n\n`;
+      const palabrasArray = Array.from(palabrasProblematicas).slice(0, 10);
       
-      if (additionalInstructions) {
-        prompt += `INSTRUCCIONES ADICIONALES DEL DOCENTE:\n${additionalInstructions}\n\n`;
+      // Prompt ultra-compacto
+      let prompt = `CORREGIR SESGOS:\n`;
+      
+      if (palabrasArray.length > 0) {
+        prompt += `REEMPLAZAR: ${palabrasArray.join(', ')}\n`;
       }
       
-      prompt += `Proporciona SOLO el texto mejorado sin explicaciones adicionales:`;
+      // Solo tipos de sesgos más críticos (máximo 3)
+      const criticalBiases = biases
+        .filter(b => b.severity === 'crítica' || b.severity === 'alta')
+        .slice(0, 3);
+      
+      if (criticalBiases.length > 0) {
+        prompt += `TIPOS: ${criticalBiases.map(b => b.type).join(', ')}\n`;
+      }
+      
+      // Instrucciones adicionales (truncadas)
+      if (additionalInstructions && additionalInstructions.trim()) {
+        const instruccionesTruncadas = additionalInstructions.length > 100 
+          ? additionalInstructions.substring(0, 97) + '...'
+          : additionalInstructions;
+        prompt += `EXTRA: ${instruccionesTruncadas}\n`;
+      }
+      
+      console.log(`📊 Prompt optimizado: ${prompt.length} caracteres (vs ~800 anterior)`);
       
       return prompt;
     } catch (error) {

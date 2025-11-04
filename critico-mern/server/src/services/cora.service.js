@@ -4,6 +4,89 @@ const CORA_AGENT_URL = process.env.CORA_AGENT_URL;
 const CORA_CHATBOT_ID = process.env.CORA_CHATBOT_ID;
 const CORA_API_KEY = process.env.CORA_API_KEY;
 
+// ⏱️ Rate limiting configuration - MUY CONSERVADOR para evitar 429
+const RATE_LIMIT = {
+  minTimeBetweenRequests: 5000, // 🔥 5 SEGUNDOS entre cada request (muy conservador)
+  maxRetries: 1, // 🔥 Solo 1 reintento (no 3)
+  retryDelay: 10000 // 🔥 Esperar 10s antes de reintentar
+};
+
+// 🚦 Cola ESTRICTA de requests - UN request a la vez con delays largos
+class RequestQueue {
+  constructor() {
+    this.queue = [];
+    this.processing = false;
+    this.lastRequestTime = 0;
+  }
+
+  async add(fn) {
+    return new Promise((resolve, reject) => {
+      this.queue.push({ fn, resolve, reject });
+      const queueLength = this.queue.length;
+      if (queueLength > 1) {
+        console.log(`🚦 Request en cola. Posición: ${queueLength}. Espera estimada: ~${queueLength * 5}s`);
+      }
+      this.process();
+    });
+  }
+
+  async process() {
+    if (this.processing || this.queue.length === 0) return;
+    
+    this.processing = true;
+    const { fn, resolve, reject } = this.queue.shift();
+    
+    try {
+      // 🔥 SIEMPRE esperar el tiempo mínimo entre requests
+      const now = Date.now();
+      const timeSinceLastRequest = now - this.lastRequestTime;
+      if (timeSinceLastRequest < RATE_LIMIT.minTimeBetweenRequests) {
+        const waitTime = RATE_LIMIT.minTimeBetweenRequests - timeSinceLastRequest;
+        console.log(`⏸️  Esperando ${(waitTime/1000).toFixed(1)}s antes del siguiente request (rate limiting)...`);
+        await new Promise(r => setTimeout(r, waitTime));
+      }
+      
+      this.lastRequestTime = Date.now();
+      const result = await fn();
+      resolve(result);
+    } catch (error) {
+      reject(error);
+    } finally {
+      this.processing = false;
+      // 🔥 Delay adicional antes de procesar el siguiente
+      if (this.queue.length > 0) {
+        setTimeout(() => this.process(), 500);
+      }
+    }
+  }
+}
+
+const requestQueue = new RequestQueue();
+
+// 🔄 Fetch simple con UN solo reintento conservador
+async function fetchWithRetry(url, options, retryCount = 0) {
+  try {
+    const response = await fetch(url, options);
+    
+    // 🔥 Si es 429, solo 1 reintento después de 10 segundos
+    if (response.status === 429 && retryCount === 0) {
+      console.log(`⏳ Rate limit (429). Esperando ${RATE_LIMIT.retryDelay/1000}s antes de reintentar...`);
+      await new Promise(resolve => setTimeout(resolve, RATE_LIMIT.retryDelay));
+      return fetchWithRetry(url, options, 1);
+    }
+    
+    return response;
+  } catch (error) {
+    // 🔥 NO reintentar errores de red - fallar rápido
+    throw error;
+  }
+}
+
+// 🎯 Wrapper que usa la cola + retry conservador
+async function queuedFetch(url, options) {
+  return requestQueue.add(() => fetchWithRetry(url, options));
+}
+
 const PROHIBITED_REPLACEMENTS = {
   todos: 'la mayoría',
   todo: 'la mayoría',
@@ -101,103 +184,102 @@ const normalizeDiacritics = (text) => {
  * @param {string} config.idioma - Idioma del texto
  * @returns {Promise<Object>} Respuesta del agente CORA
  */
+// 🔥 OPTIMIZACIÓN DE PAYLOAD - Límites estrictos para reducir tokens
+const PAYLOAD_LIMITS = {
+  MAX_TEXT_LENGTH: 2000,        // Máximo 2000 caracteres de texto original
+  MAX_BIAS_DESCRIPTIONS: 300,   // Máximo 300 caracteres para descripciones de sesgos
+  MAX_INSTRUCTIONS: 200,        // Máximo 200 caracteres para instrucciones adicionales
+  MAX_CONTEXT: 500,            // Máximo 500 caracteres de contexto
+  MAX_TOTAL_PAYLOAD: 3000      // Máximo total del mensaje
+};
+
+// 🔧 Función para truncar texto inteligentemente
+function smartTruncateText(text, maxLength, preserveEnd = false) {
+  if (!text || text.length <= maxLength) return text;
+  
+  if (preserveEnd) {
+    // Para texto original, preservar el final que puede tener conclusiones importantes
+    const start = text.substring(0, Math.floor(maxLength * 0.6));
+    const end = text.substring(text.length - Math.floor(maxLength * 0.4));
+    return `${start}\n\n[...CONTENIDO TRUNCADO...]\n\n${end}`;
+  } else {
+    // Para descripciones, tomar solo el inicio
+    return text.substring(0, maxLength - 3) + '...';
+  }
+}
+
+// 🔧 Función para optimizar descripciones de sesgos
+function optimizeBiasDescriptions(biases) {
+  if (!biases || biases.length === 0) return [];
+  
+  return biases.slice(0, 3).map(bias => ({
+    type: bias.type,
+    // Solo palabras problemáticas, sin descripciones largas
+    palabrasProblematicas: bias.palabrasProblematicas?.slice(0, 5) || [],
+    severity: bias.severity
+  }));
+}
+
+// 🔧 Función para crear mensaje optimizado
+function createOptimizedMessage(config) {
+  const isCorrectionMode = Array.isArray(config.sesgosDetectados) && config.sesgosDetectados.length > 0;
+  
+  if (isCorrectionMode) {
+    // Extraer solo palabras problemáticas (sin descripciones largas)
+    const palabrasProblematicas = new Set();
+    config.sesgosDetectados.forEach(sesgo => {
+      if (sesgo.palabrasProblematicas && sesgo.palabrasProblematicas.length > 0) {
+        sesgo.palabrasProblematicas.slice(0, 5).forEach(p => palabrasProblematicas.add(p.toLowerCase()));
+      }
+    });
+    
+    const palabrasArray = Array.from(palabrasProblematicas).slice(0, 10); // Máximo 10 palabras
+    
+    // Mensaje ultra-compacto
+    let userMessage = `MODO=CORREGIR\nPRODUCE=TEXTO\n`;
+    
+    if (palabrasArray.length > 0) {
+      userMessage += `REEMPLAZAR: ${palabrasArray.join(', ')}\n`;
+    }
+    
+    // Instrucciones del docente (truncadas)
+    if (config.instruccionesDocente && config.instruccionesDocente.trim()) {
+      const instruccionesTruncadas = smartTruncateText(config.instruccionesDocente, PAYLOAD_LIMITS.MAX_INSTRUCTIONS);
+      userMessage += `INSTRUCCIONES: ${instruccionesTruncadas}\n`;
+    }
+    
+    // Formato específico para párrafos de 6-8 líneas
+    userMessage += `FORMATO: Párrafos de 6-8 líneas cada uno\n`;
+    
+    // Texto original (truncado inteligentemente)
+    const textoTruncado = smartTruncateText(config.textoOriginal, PAYLOAD_LIMITS.MAX_TEXT_LENGTH, true);
+    userMessage += `TEXTO:\n${textoTruncado}`;
+    
+    return userMessage;
+    
+  } else {
+    // Modo normal - parámetros básicos solamente con formato de párrafos
+    return `tema=${config.tema}; publico=${config.publico}; nivel=${config.nivel}; proposito=${config.proposito}; ventana_temporal=${config.ventanaInicio}-${config.ventanaFin}; idioma=${config.idioma}; formato=párrafos de 6-8 líneas cada uno`;
+  }
+}
+
 async function generateEducationalText(config) {
   try {
-    console.log('📤 Enviando solicitud a CORA...');
+    console.log('📤 Enviando solicitud OPTIMIZADA a CORA...');
     
-    // Construir la URL correcta según la documentación de DigitalOcean
     const endpoint = `${CORA_AGENT_URL}/api/v1/chat/completions`;
-    console.log('URL:', endpoint);
-    console.log('Config:', config);
-
-    let userMessage;
-    let prohibitedWords = [];
-    const validationWarnings = [];
-    const isCorrectionMode = Array.isArray(config.sesgosDetectados) && config.sesgosDetectados.length > 0;
     
-    // ✅ MODO CORRECCIÓN - El agente YA TIENE todas las instrucciones en su SYSTEM prompt
-    if (isCorrectionMode) {
-      
-      // Extraer palabras problemáticas
-      const todasLasPalabras = new Set();
-      config.sesgosDetectados.forEach(sesgo => {
-        if (sesgo.palabrasProblematicas && sesgo.palabrasProblematicas.length > 0) {
-          sesgo.palabrasProblematicas.forEach(p => todasLasPalabras.add(p.toLowerCase()));
-        }
-      });
-      
-      const palabrasArray = Array.from(todasLasPalabras);
-      prohibitedWords = palabrasArray;
-      
-      // Construir mensaje según el formato que el agente espera
-      userMessage = `MODO=CORREGIR\n`;
-      userMessage += `PRODUCE=TEXTO\n`;
-      userMessage += `FORMATO_TEXTO: 5 párrafos × 8 líneas. 12–18 palabras por línea.\n`;
-      userMessage += `SECCIONES_TEXTO: "Ejemplos claros y precisos" (5 ítems) y "Glosario breve" (8–10 términos).\n\n`;
-      
-      // 🔥 MAPA EXPLÍCITO DE REEMPLAZOS
-      if (palabrasArray.length > 0) {
-        userMessage += `🚫 PALABRAS PROHIBIDAS Y SUS REEMPLAZOS:\n`;
-        palabrasArray.forEach(palabra => {
-          const reemplazo = PROHIBITED_REPLACEMENTS[palabra.toLowerCase()] || 'varios';
-          userMessage += `   ❌ "${palabra}" → ✅ "${reemplazo}"\n`;
-        });
-        userMessage += `\n`;
-      }
-      
-      userMessage += `⚠️⚠️⚠️ INSTRUCCIONES CRÍTICAS - CUMPLIMIENTO OBLIGATORIO ⚠️⚠️⚠️\n\n`;
-      
-      userMessage += `1. BÚSQUEDA: Lee el texto línea por línea y encuentra TODAS las ocurrencias de las palabras prohibidas listadas arriba.\n\n`;
-      
-      userMessage += `2. REEMPLAZO: Para cada palabra prohibida que encuentres:\n`;
-      userMessage += `   - Identifica la oración completa que la contiene\n`;
-      userMessage += `   - Reescribe la oración usando el reemplazo sugerido\n`;
-      userMessage += `   - Ajusta la gramática si es necesario (concordancia verbal, género, número)\n`;
-      userMessage += `   - Ejemplo: "Se deben validar todas las etapas" → "Se deben validar la mayoría de las etapas"\n`;
-      userMessage += `   - Ejemplo: "varios alumno elabora" → "varios alumnos elaboran" (concordancia plural)\n`;
-      userMessage += `   - Ejemplo: "métodos" NO debe convertirse en "méla mayoríados" - NO toques palabras correctas\n\n`;
-      
-      userMessage += `3. PRESERVACIÓN: Mantén EXACTAMENTE:\n`;
-      userMessage += `   - Formato 5×8 (5 párrafos de 8 líneas)\n`;
-      userMessage += `   - Secciones "Ejemplos claros y precisos" (5 ítems) y "Glosario breve" (8-10 términos)\n`;
-      userMessage += `   - Todo el contenido técnico y educativo\n\n`;
-      
-      userMessage += `4. VERIFICACIÓN FINAL: Antes de entregar el texto corregido:\n`;
-      userMessage += `   - Revisa línea por línea\n`;
-      userMessage += `   - Confirma que NO aparece ninguna de las palabras prohibidas\n`;
-      userMessage += `   - Verifica que NO corrompiste palabras correctas como "métodos"\n\n`;
-      
-      if (config.instruccionesDocente && config.instruccionesDocente.trim()) {
-        userMessage += `📝 INSTRUCCIONES ADICIONALES DEL PROFESOR:\n${config.instruccionesDocente}\n\n`;
-      }
-      
-      userMessage += `� TEXTO ORIGINAL PARA CORREGIR:\n\n${config.textoOriginal}\n\n`;
-      
-      userMessage += `═══════════════════════════════════════════════════════\n`;
-      userMessage += `🎯 RECORDATORIO: Reemplaza ${palabrasArray.map(p => `"${p}"`).join(', ')}\n`;
-      userMessage += `✍️ Genera el texto corregido ahora, siguiendo las instrucciones al pie de la letra.\n`;
-      userMessage += `═══════════════════════════════════════════════════════`;
-      
-      console.log('✅ Construido mensaje de corrección DIRECTO con palabras prohibidas:', palabrasArray);
-      
-    } 
-    // ⚠️ Mantener compatibilidad con formato legacy
-    else if (config.correcciones && config.correcciones.trim()) {
-      userMessage = `🔄 MODO: CORRECCIÓN DE SESGOS Y REGENERACIÓN\n\n`;
-      userMessage += `📋 PARÁMETROS DEL TEXTO:\n`;
-      userMessage += `tema=${config.tema}; publico=${config.publico}; nivel=${config.nivel}; proposito=${config.proposito}; ventana_temporal=${config.ventanaInicio}-${config.ventanaFin}; idioma=${config.idioma}\n\n`;
-      userMessage += `🚨 INSTRUCCIONES DE CORRECCIÓN:\n`;
-      userMessage += config.correcciones;
-      console.log('⚠️  Usando formato legacy de correcciones');
-      
-    } 
-    // ➕ MODO NORMAL: Generación desde cero
-    else {
-      userMessage = `tema=${config.tema}; publico=${config.publico}; nivel=${config.nivel}; proposito=${config.proposito}; ventana_temporal=${config.ventanaInicio}-${config.ventanaFin}; idioma=${config.idioma}`;
-      console.log('➕ Modo generación normal desde cero');
+    // 🔥 CREAR MENSAJE OPTIMIZADO
+    const userMessage = createOptimizedMessage(config);
+    
+    // Verificar límite total
+    if (userMessage.length > PAYLOAD_LIMITS.MAX_TOTAL_PAYLOAD) {
+      console.warn(`⚠️ Payload excede límite: ${userMessage.length} > ${PAYLOAD_LIMITS.MAX_TOTAL_PAYLOAD}`);
+      // Truncar mensaje completo si es necesario
+      const truncatedMessage = smartTruncateText(userMessage, PAYLOAD_LIMITS.MAX_TOTAL_PAYLOAD);
+      console.log('✂️ Mensaje truncado para cumplir límites');
     }
 
-    // Formato según documentación oficial de DigitalOcean
     const requestBody = {
       messages: [
         {
@@ -211,17 +293,12 @@ async function generateEducationalText(config) {
       include_guardrails_info: false
     };
 
-    console.log('📨 Request body:', JSON.stringify(requestBody, null, 2));
-    console.log('📝 Longitud del mensaje:', userMessage.length, 'caracteres');
-    if (isCorrectionMode) {
-      console.log('✅ MODO CORRECCIÓN ACTIVADO - Enviando instrucciones de eliminación de sesgos');
-    } else if (config.correcciones) {
-      console.log('✅ MODO CORRECCIÓN (LEGACY) - Enviando instrucciones personalizadas');
-    } else {
-      console.log('➕ MODO GENERACIÓN NORMAL - Creando texto desde cero');
-    }
+    console.log('📊 Estadísticas del payload:');
+    console.log(`   - Longitud del mensaje: ${userMessage.length} caracteres`);
+    console.log(`   - Límite configurado: ${PAYLOAD_LIMITS.MAX_TOTAL_PAYLOAD} caracteres`);
+    console.log(`   - Reducción estimada: ~${Math.round((1 - userMessage.length / 5000) * 100)}% vs payload anterior`);
 
-    const response = await fetch(endpoint, {
+    const response = await queuedFetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -258,67 +335,31 @@ async function generateEducationalText(config) {
       }
     }
     
-    if (prohibitedWords.length > 0) {
-      // 🔧 POST-PROCESAMIENTO AGRESIVO
-      
-      // Paso 1: Corregir corrupciones conocidas (méla mayoría → métodos)
-      content = content.replace(/méla mayoría/gi, 'métodos');
-      content = content.replace(/la mayoríados/gi, 'todos'); // Si se corrompió, mantener original mejor
-      
-      // Paso 2: Reemplazar palabras prohibidas que quedaron
-      const { text: sanitizedText, replacementsApplied } = replaceProhibitedWords(content, prohibitedWords);
-      if (replacementsApplied.length > 0) {
-        console.log('🔁 Reemplazos aplicados en post-procesamiento:', replacementsApplied);
-      }
-      
-      // Paso 3: Corregir concordancias comunes
-      let finalText = sanitizedText;
-      finalText = finalText.replace(/varios\s+(\w+)\s+elabora\b/gi, (match, noun) => {
-        return `varios ${noun}s elaboran`;
+    // 🔥 POST-PROCESAMIENTO SIMPLIFICADO (solo si hay palabras problemáticas)
+    const isCorrectionMode = Array.isArray(config.sesgosDetectados) && config.sesgosDetectados.length > 0;
+    if (isCorrectionMode) {
+      const palabrasProblematicas = new Set();
+      config.sesgosDetectados.forEach(sesgo => {
+        if (sesgo.palabrasProblematicas && sesgo.palabrasProblematicas.length > 0) {
+          sesgo.palabrasProblematicas.slice(0, 5).forEach(p => palabrasProblematicas.add(p.toLowerCase()));
+        }
       });
-      finalText = finalText.replace(/varios\s+alumno\b/gi, 'varios alumnos');
-      finalText = finalText.replace(/varios\s+estudiante\b/gi, 'varios estudiantes');
-
-      // Paso 4: Verificación final
-      const remaining = prohibitedWords.filter(word => containsProhibitedWord(finalText, word));
-      if (remaining.length > 0) {
-        console.warn('⚠️ Palabras prohibidas AÚN presentes tras sanitización:', remaining);
-        validationWarnings.push(`El texto generado aún contiene términos no permitidos: ${remaining.join(', ')}`);
-      } else {
-        console.log('✅ Todas las palabras prohibidas fueron eliminadas exitosamente');
-      }
-
-      content = finalText;
-    }
-
-    if (isCorrectionMode && config.instruccionesDocente && typeof config.instruccionesDocente === 'string') {
-      const instruction = config.instruccionesDocente.toLowerCase();
-      const normalizedInstruction = normalizeDiacritics(instruction);
-      if ((instruction.includes('amplia el glosario') || instruction.includes('amplica el glosario')) && config.textoOriginal) {
-        const originalGlossaryCount = countGlossaryItems(config.textoOriginal);
-        const updatedGlossaryCount = countGlossaryItems(content);
-
-        if (updatedGlossaryCount <= originalGlossaryCount) {
-          const warningMessage = `El glosario no se amplió (original: ${originalGlossaryCount} ítems, nuevo: ${updatedGlossaryCount} ítems).`;
-          validationWarnings.push(warningMessage);
-          console.warn('⚠️ Advertencia de validación:', warningMessage);
+      
+      const palabrasArray = Array.from(palabrasProblematicas);
+      
+      if (palabrasArray.length > 0) {
+        // Post-procesamiento mínimo
+        const { text: sanitizedText } = replaceProhibitedWords(content, palabrasArray);
+        content = sanitizedText;
+        
+        // Verificación final simplificada
+        const remaining = palabrasArray.filter(word => containsProhibitedWord(content, word));
+        if (remaining.length > 0) {
+          console.warn('⚠️ Palabras problemáticas restantes:', remaining.slice(0, 3));
+        } else {
+          console.log('✅ Optimización de sesgos completada');
         }
       }
-
-      if (normalizedInstruction.includes('agrega') && normalizedInstruction.includes('informacion') && config.textoOriginal) {
-        const originalWordCount = countWords(config.textoOriginal);
-        const updatedWordCount = countWords(content);
-
-        if (updatedWordCount <= originalWordCount) {
-          const warningMessage = `El texto corregido no aumenta la cantidad de información (original: ${originalWordCount} palabras, nuevo: ${updatedWordCount} palabras).`;
-          validationWarnings.push(warningMessage);
-          console.warn('⚠️ Advertencia de validación:', warningMessage);
-        }
-      }
-    }
-
-    if (validationWarnings.length > 0) {
-      data.validationWarnings = validationWarnings;
     }
 
     // Actualizar el contenido procesado
@@ -413,7 +454,7 @@ Explicación: [qué evalúa]
 
     console.log('📨 Generando preguntas...');
 
-    const response = await fetch(endpoint, {
+    const response = await queuedFetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -524,7 +565,7 @@ FORMATO: Usa un tono académico pero cercano, como un tutor que busca ayudar al 
 
     console.log('📨 Solicitando evaluación a CORA...');
 
-    const response = await fetch(endpoint, {
+    const response = await queuedFetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -641,7 +682,7 @@ ${recomendaciones.length > 0 ? `Recomendaciones:\n${recomendacionesTexto}` : ''}
       include_guardrails_info: false
     };
 
-    const response = await fetch(endpoint, {
+    const response = await queuedFetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -703,7 +744,7 @@ async function generateTutorResponse(config) {
 
     console.log('📨 Enviando consulta al tutor...');
 
-    const response = await fetch(endpoint, {
+    const response = await queuedFetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

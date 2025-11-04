@@ -1,4 +1,113 @@
-node_modules
+# ============================================
+# .dockerignore optimizado para agentes de IA
+# Proyecto de generación de texto con detección de sesgos
+# ============================================
+
+# Node.js y dependencias
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+package-lock.json
+yarn.lock
+
+# Logs y archivos temporales
+logs/
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
+*.bak
+*.orig
+
+# Testing y coverage (reduce tokens significativamente)
+coverage/
+.jest-cache/
+test-results/
+playwright-report/
+playwright/.cache/
+.nyc_output/
+tests/
+__tests__/
+*.test.js
+*.test.jsx
+*.spec.js
+*.spec.jsx
+
+# Build y dist
+dist/
+dist-ssr/
+build/
+out/
+.vite/
+.cache/
+
+# Documentación extensa (CRÍTICO para reducir tokens)
+DOCUMENTACION-*.md
+README-*.md
+SIMPLIFICACION-*.md
+*.OLD.*
+*.BACKUP.*
+
+# IDEs y editores
+.vscode/
+.idea/
+*.sublime-*
+.DS_Store
+Thumbs.db
+
+# Environment y configuración sensible
+.env*
+config/secrets.js
+config/local.js
+
+# Docker
+docker-compose.override.yml
+.docker/
+volumes/
+
+# Git
+.git/
+.gitignore
+
+# Archivos grandes y media
+*.mp4
+*.avi
+*.mov
+*.zip
+*.tar.gz
+*.rar
+*.pdf
+
+# Uploads y contenido generado por usuarios
+uploads/
+public/uploads/
+generated-texts/
+output/
+
+# Migrations y scripts de desarrollo
+migrations/
+scripts/
+run-seed.*
+*.ps1
+*.sh
+
+# Archivos de configuración que generan mucho texto
+jest.config.js
+babel.config.*
+vite.config.js
+nginx.conf
+
+# Específico para proyecto de texto/sesgos
+# Archivos de texto generados que pueden ser muy largos
+generated/
+samples/
+examples/
+training-data/
+corpus/
+datasets/
 npm-debug.log
 .env
 .env.local

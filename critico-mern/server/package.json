@@ -31,6 +31,7 @@
     "mongoose": "^8.5.1",
     "morgan": "^1.10.0",
     "node-fetch": "^2.7.0",
+    "test": "^3.3.0",
     "uuid": "^9.0.1"
   },
   "devDependencies": {

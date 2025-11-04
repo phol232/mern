@@ -394,6 +394,7 @@ const CourseDetailPage = () => {
     }
   };
 
+  // 🔥 VERSIÓN OPTIMIZADA - Prompt ultra-compacto
   const handleRegenerateWithBiases = async () => {
     if (!previewText?.content || !biasesData?.biases) {
       alert('No hay sesgos detectados para mejorar');
@@ -404,159 +405,71 @@ const CourseDetailPage = () => {
     setTextGeneratingError(null);
 
     try {
-      const problematicWords = new Set();
-      const problematicContexts = [];
-      const allBiasDescriptions = [];
-      
+      // Extraer solo palabras problemáticas críticas (máximo 8)
+      const palabrasProblematicas = new Set();
       biasesData.biases.forEach(bias => {
-        allBiasDescriptions.push(bias);
-        
-        const matches = bias.description.match(/"([^"]+)"/g);
-        if (matches) {
-          matches.forEach(match => {
-            const word = match.replace(/"/g, '').trim().toLowerCase();
-            if (word.length < 20 && !word.includes('...')) {
-              problematicWords.add(word);
-            }
-          });
-        }
-        
-        const contextMatches = bias.description.match(/"\.\.\.(.*?)\.\.\."/g);
-        if (contextMatches && contextMatches.length > 0) {
-          problematicContexts.push(...contextMatches.slice(0, 3));
+        if (bias.palabrasProblematicas && bias.palabrasProblematicas.length > 0) {
+          bias.palabrasProblematicas.slice(0, 2).forEach(p => palabrasProblematicas.add(p.toLowerCase()));
         }
       });
       
-      let improvementPrompt = `🚨🚨🚨 TAREA CRÍTICA: REESCRIBIR TEXTO ELIMINANDO TÉRMINOS ABSOLUTOS 🚨🚨🚨\n\n`;
+      const palabrasArray = Array.from(palabrasProblematicas).slice(0, 8);
       
-      improvementPrompt += `⚠️ INSTRUCCIÓN PRINCIPAL:\n`;
-      improvementPrompt += `Debes reescribir COMPLETAMENTE el texto de abajo, eliminando TODAS las ocurrencias de las palabras listadas.\n`;
-      improvementPrompt += `NO copies el texto tal cual. DEBES modificar cada oración que contenga estas palabras.\n`;
-      improvementPrompt += `El texto resultante NO PUEDE contener ninguna de estas palabras problemáticas.\n\n`;
-      
-      if (problematicWords.size > 0) {
-        improvementPrompt += `🔴 LISTA DE PALABRAS PROHIBIDAS (DEBES ELIMINARLAS TODAS):\n`;
-        const wordsArray = Array.from(problematicWords);
-        
-        const absoluteQuantifiers = wordsArray.filter(w => 
-          ['cada', 'todo', 'todos', 'toda', 'todas', 'siempre', 'nunca', 'jamás', 'ningún', 'ninguna', 'ninguno', 'nadie', 'nada'].includes(w)
-        );
-        const otherWords = wordsArray.filter(w => !absoluteQuantifiers.includes(w));
-        
-        if (absoluteQuantifiers.length > 0) {
-          improvementPrompt += `\n📊 CUANTIFICADORES ABSOLUTOS DETECTADOS:\n`;
-          absoluteQuantifiers.forEach(word => {
-            improvementPrompt += `   ❌ "${word}"\n`;
-          });
-          improvementPrompt += `\n✅ REGLAS DE REEMPLAZO OBLIGATORIAS:\n`;
-          absoluteQuantifiers.forEach(word => {
-            if (word === 'cada') {
-              improvementPrompt += `   • "cada X" → REEMPLAZAR POR: "los X", "las X", "algunos X", "varios X", "muchos X"\n`;
-            } else if (word === 'todo' || word === 'todos' || word === 'toda' || word === 'todas') {
-              improvementPrompt += `   • "${word}" → REEMPLAZAR POR: "la mayoría", "muchos", "varios", "gran parte"\n`;
-            } else if (word === 'siempre') {
-              improvementPrompt += `   • "${word}" → REEMPLAZAR POR: "frecuentemente", "habitualmente", "en muchos casos", "típicamente"\n`;
-            } else if (word === 'nunca' || word === 'jamás') {
-              improvementPrompt += `   • "${word}" → REEMPLAZAR POR: "raramente", "en pocos casos", "es infrecuente", "ocasionalmente no"\n`;
-            } else if (word.includes('ningún') || word.includes('ninguna') || word === 'nadie' || word === 'nada') {
-              improvementPrompt += `   • "${word}" → REEMPLAZAR POR: "pocos", "algunos no", "es poco común", "en casos limitados"\n`;
-            }
-          });
-          improvementPrompt += `\n`;
-        }
-        
-        if (otherWords.length > 0) {
-          improvementPrompt += `\n🔍 OTRAS PALABRAS PROBLEMÁTICAS DETECTADAS:\n`;
-          otherWords.forEach(word => {
-            improvementPrompt += `   ❌ "${word}" → ELIMINAR o usar términos más precisos y cuantificables\n`;
-          });
-          improvementPrompt += `\n`;
-        }
-        
-        if (problematicContexts.length > 0) {
-          improvementPrompt += `📍 EJEMPLOS DE DÓNDE APARECEN EN EL TEXTO ORIGINAL:\n`;
-          problematicContexts.forEach((ctx, i) => {
-            improvementPrompt += `   ${i + 1}. ${ctx}\n`;
-          });
-          improvementPrompt += `   ⚠️ Estas frases DEBEN ser reescritas sin las palabras prohibidas.\n\n`;
-        }
+      // Prompt ultra-compacto (máximo 150 caracteres)
+      let improvementPrompt = '';
+      if (palabrasArray.length > 0) {
+        improvementPrompt = `CORREGIR: ${palabrasArray.join(', ')}`;
       }
       
-      improvementPrompt += `\n🎯 ANÁLISIS COMPLETO DE SESGOS DETECTADOS:\n`;
-      allBiasDescriptions.forEach((bias, index) => {
-        improvementPrompt += `${index + 1}. ${bias.type.toUpperCase()}: ${bias.description}\n`;
-        improvementPrompt += `   Corrección necesaria: ${bias.suggestion}\n\n`;
-      });
+      // Solo sesgos críticos (máximo 3)
+      const criticalBiases = biasesData.biases
+        .filter(b => b.severity === 'crítica' || b.severity === 'alta')
+        .slice(0, 3);
       
+      if (criticalBiases.length > 0) {
+        const tipos = criticalBiases.map(b => b.type).join(', ');
+        improvementPrompt += improvementPrompt ? ` | TIPOS: ${tipos}` : `TIPOS: ${tipos}`;
+      }
+      
+      // Instrucciones del docente (máximo 50 caracteres)
       if (textCorrections && textCorrections.trim()) {
-        improvementPrompt += `\n📝 INSTRUCCIONES ADICIONALES DEL PROFESOR:\n${textCorrections}\n\n`;
+        const instruccionesTruncadas = textCorrections.length > 50 
+          ? textCorrections.substring(0, 47) + '...'
+          : textCorrections;
+        improvementPrompt += improvementPrompt ? ` | ${instruccionesTruncadas}` : instruccionesTruncadas;
       }
-      
-      improvementPrompt += `\n⚠️⚠️⚠️ PASOS OBLIGATORIOS PARA LA CORRECCIÓN ⚠️⚠️⚠️\n`;
-      improvementPrompt += `1. Lee CADA LÍNEA del texto original\n`;
-      improvementPrompt += `2. Busca CADA OCURRENCIA de las palabras de la lista de prohibidas\n`;
-      improvementPrompt += `3. REESCRIBE la oración completa usando los reemplazos sugeridos\n`;
-      improvementPrompt += `4. Verifica que el texto resultante NO contenga NINGUNA palabra prohibida\n`;
-      improvementPrompt += `5. Mantén el formato 5×8 (5 párrafos de 8 líneas) y la estructura del contenido\n`;
-      improvementPrompt += `6. Conserva los ejemplos, glosario y secciones especiales\n\n`;
-      
+
+      // Payload optimizado para el backend
       const payload = {
-        tema: generateTextForm.tema,
-        publico: generateTextForm.publico,
-        nivel: generateTextForm.nivel,
-        proposito: generateTextForm.proposito,
-        ventanaInicio: generateTextForm.ventanaInicio,
-        ventanaFin: generateTextForm.ventanaFin,
-        idioma: generateTextForm.idioma,
+        tema: selectedTopicForTexts.title || 'Marco Teórico',
+        publico: 'estudiantes',
+        nivel: 'intermedio',
+        proposito: 'aplicar',
+        ventanaInicio: '2020',
+        ventanaFin: '2025',
+        idioma: 'español',
         
-        textoOriginal: previewText.content,
-        
-        sesgosDetectados: biasesData.biases.map(bias => ({
-          tipo: bias.type,
-          descripcion: bias.description,
-          sugerencia: bias.suggestion,
-          severidad: bias.severity,
-          ubicacion: bias.location,
-          palabrasProblematicas: (() => {
-            const normalizedProblematic = Array.isArray(bias.problematicWords)
-              ? bias.problematicWords
-                  .map(word => (typeof word === 'string' ? word.trim().toLowerCase() : ''))
-                  .filter(word => word.length > 0)
-              : [];
-
-            if (normalizedProblematic.length > 0) {
-              return Array.from(new Set(normalizedProblematic));
-            }
-
-            if (bias.location && bias.location.includes('término(s) detectado(s):')) {
-              const matches = bias.location.match(/"([^"]+)"/g);
-              if (matches) {
-                return Array.from(new Set(matches
-                  .map(m => m.replace(/"/g, '').trim().toLowerCase())
-                  .filter(w => w.length > 0)));
-              }
-            }
-            const descMatches = bias.description.match(/"([^"]+)"/g);
-            if (descMatches) {
-              return Array.from(new Set(descMatches
-                .map(m => m.replace(/"/g, '').trim().toLowerCase())
-                .filter(w => w.length < 20 && w.length > 0 && !w.includes('...'))));
-            }
-            return [];
-          })()
+        // Solo datos esenciales de sesgos
+        sesgosDetectados: criticalBiases.map(bias => ({
+          type: bias.type,
+          palabrasProblematicas: bias.palabrasProblematicas?.slice(0, 3) || [],
+          severity: bias.severity
         })),
         
-        instruccionesDocente: textCorrections && textCorrections.trim() 
-          ? textCorrections 
-          : null
+        // Texto original (truncado inteligentemente para párrafos de 6-8 líneas)
+        textoOriginal: previewText.content.length > 1500 
+          ? previewText.content.substring(0, 800) + '\n\n[...TRUNCADO...]\n\n' + previewText.content.substring(previewText.content.length - 700)
+          : previewText.content,
+        
+        // Instrucciones compactas
+        instruccionesDocente: improvementPrompt || undefined
       };
 
-      console.log('📤 Payload a enviar (generación):', {
-        ...payload,
-        textoOriginal: payload.textoOriginal ? `${payload.textoOriginal.substring(0, 100)}...` : 'NO',
-        sesgosDetectados: payload.sesgosDetectados ? `${payload.sesgosDetectados.length} sesgos` : 'NO'
+      console.log('📤 Payload optimizado:', {
+        sesgos: payload.sesgosDetectados.length,
+        textoLength: payload.textoOriginal.length,
+        instruccionesLength: (payload.instruccionesDocente || '').length
       });
-      console.log('📊 Detalle de sesgos:', payload.sesgosDetectados);
 
       const previousBiasCount = biasesData.biases.length;
 
@@ -836,81 +749,60 @@ const CourseDetailPage = () => {
         }
       }
       
-      improvementPrompt += `\n🎯 ANÁLISIS COMPLETO DE SESGOS DETECTADOS:\n`;
-      allBiasDescriptions.forEach((bias, index) => {
-        improvementPrompt += `${index + 1}. ${bias.type.toUpperCase()}: ${bias.description}\n`;
-        improvementPrompt += `   Corrección necesaria: ${bias.suggestion}\n\n`;
-      });
+      // Crear prompt ultra-compacto para regeneración
+      const criticalBiases = allBiasDescriptions
+        .filter(bias => bias.severity === 'high' || bias.severity === 'critical')
+        .slice(0, 3);
       
-      if (regenerateInstructions && regenerateInstructions.trim()) {
-        improvementPrompt += `\n📝 INSTRUCCIONES ADICIONALES DEL PROFESOR:\n${regenerateInstructions}\n\n`;
+      const criticalProblematicWords = Array.from(problematicWords).slice(0, 8);
+      improvementPrompt = `REESCRIBIR eliminando: ${criticalProblematicWords.join(', ')}. `;
+      
+      if (criticalBiases.length > 0) {
+        improvementPrompt += `Corregir: ${criticalBiases.map(b => b.type).join(', ')}. `;
       }
       
-      improvementPrompt += `\n⚠️⚠️⚠️ PASOS OBLIGATORIOS PARA LA CORRECCIÓN ⚠️⚠️⚠️\n`;
-      improvementPrompt += `1. Lee CADA LÍNEA del texto original\n`;
-      improvementPrompt += `2. Busca CADA OCURRENCIA de las palabras de la lista de prohibidas\n`;
-      improvementPrompt += `3. REESCRIBE la oración completa usando los reemplazos sugeridos\n`;
-      improvementPrompt += `4. Verifica que el texto resultante NO contenga NINGUNA palabra prohibida\n`;
-      improvementPrompt += `5. Mantén el formato 5×8 (5 párrafos de 8 líneas) y la estructura del contenido\n`;
-      improvementPrompt += `6. Conserva los ejemplos, glosario y secciones especiales\n\n`;
+      if (regenerateInstructions && regenerateInstructions.trim()) {
+        const truncatedInstructions = regenerateInstructions.length > 50 
+          ? regenerateInstructions.substring(0, 50) + '...'
+          : regenerateInstructions;
+        improvementPrompt += `Extra: ${truncatedInstructions}. `;
+      }
       
+      improvementPrompt += `Formato: 6-8 líneas por párrafo. SOLO texto mejorado.`;
+      
+      console.log(`📊 Prompt modal optimizado: ${improvementPrompt.length} caracteres (vs ~1500 anterior)`);
+      
+      // Payload optimizado para regeneración modal
       const payload = {
-        tema: textToRegenerate.title || 'Marco Teorico',
-        publico: textToRegenerate.metadata?.publico || 'estudiantes de ingenieria',
-        nivel: textToRegenerate.difficulty || 'intermedio',
-        proposito: textToRegenerate.metadata?.proposito || 'aplicar',
-        ventanaInicio: textToRegenerate.metadata?.ventana?.split('-')[0] || '2020',
-        ventanaFin: textToRegenerate.metadata?.ventana?.split('-')[1] || '2025',
-        idioma: textToRegenerate.metadata?.idioma || 'español',
+        tema: textToRegenerate.title || 'Marco Teórico',
+        publico: 'estudiantes',
+        nivel: 'intermedio',
+        proposito: 'aplicar',
+        ventanaInicio: '2020',
+        ventanaFin: '2025',
+        idioma: 'español',
         
-        textoOriginal: textToRegenerate.content,
-        
-        sesgosDetectados: biasesData.biases.map(bias => ({
-          tipo: bias.type,
-          descripcion: bias.description,
-          sugerencia: bias.suggestion,
-          severidad: bias.severity,
-          ubicacion: bias.location,
-          palabrasProblematicas: (() => {
-            const normalizedProblematic = Array.isArray(bias.problematicWords)
-              ? bias.problematicWords
-                  .map(word => (typeof word === 'string' ? word.trim().toLowerCase() : ''))
-                  .filter(word => word.length > 0)
-              : [];
-
-            if (normalizedProblematic.length > 0) {
-              return Array.from(new Set(normalizedProblematic));
-            }
-
-            if (bias.location && bias.location.includes('término(s) detectado(s):')) {
-              const matches = bias.location.match(/"([^"]+)"/g);
-              if (matches) {
-                return Array.from(new Set(matches
-                  .map(m => m.replace(/"/g, '').trim().toLowerCase())
-                  .filter(w => w.length > 0)));
-              }
-            }
-            const descMatches = bias.description.match(/"([^"]+)"/g);
-            if (descMatches) {
-              return Array.from(new Set(descMatches
-                .map(m => m.replace(/"/g, '').trim().toLowerCase())
-                .filter(w => w.length < 20 && w.length > 0 && !w.includes('...'))));
-            }
-            return [];
-          })()
+        // Solo datos esenciales de sesgos críticos
+        sesgosDetectados: criticalBiases.map(bias => ({
+          type: bias.type,
+          palabrasProblematicas: criticalProblematicWords.slice(0, 3),
+          severity: bias.severity
         })),
         
-        instruccionesDocente: regenerateInstructions && regenerateInstructions.trim() 
-          ? regenerateInstructions 
-          : null
+        // Texto original (truncado inteligentemente para párrafos de 6-8 líneas)
+        textoOriginal: textToRegenerate.content.length > 1500 
+          ? textToRegenerate.content.substring(0, 800) + '\n\n[...TRUNCADO...]\n\n' + textToRegenerate.content.substring(textToRegenerate.content.length - 700)
+          : textToRegenerate.content,
+        
+        // Instrucciones compactas
+        instruccionesDocente: improvementPrompt || undefined
       };
 
-      console.log('📤 Payload a enviar:', {
-        ...payload,
-        textoOriginal: payload.textoOriginal ? `${payload.textoOriginal.substring(0, 100)}...` : 'NO',
-        sesgosDetectados: payload.sesgosDetectados ? `${payload.sesgosDetectados.length} sesgos` : 'NO'
+      console.log('📤 Payload modal optimizado:', {
+        sesgos: payload.sesgosDetectados.length,
+        textoLength: payload.textoOriginal.length,
+        instruccionesLength: (payload.instruccionesDocente || '').length
       });
-      console.log('📊 Detalle de sesgos:', payload.sesgosDetectados);
 
       const previousBiasCount = biasesData.biases.length;
 

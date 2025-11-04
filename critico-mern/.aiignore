@@ -1,0 +1,89 @@
+# ============================================
+# .aiignore - Archivos a excluir del procesamiento de agentes de IA
+# Proyecto: Generación de texto con detección de sesgos
+# ============================================
+
+# ARCHIVOS QUE CONSUMEN MUCHOS TOKENS
+# ============================================
+
+# Documentación extensa
+DOCUMENTACION-SISTEMA-COMPLETO.md
+README-SEED.md
+SIMPLIFICACION-RECOMENDADA.md
+*.OLD.*
+*.BACKUP.*
+
+# Dependencias y lockfiles (muy largos)
+package-lock.json
+yarn.lock
+node_modules/
+
+# Archivos de configuración largos
+jest.config.js
+babel.config.cjs
+vite.config.js
+nginx.conf
+
+# Tests (no necesarios para desarrollo general)
+tests/
+__tests__/
+*.test.js
+*.test.jsx
+*.spec.js
+*.spec.jsx
+jest.setup.js
+
+# Build y archivos generados
+dist/
+build/
+coverage/
+.vite/
+.cache/
+
+# Logs y temporales
+logs/
+*.log
+*.tmp
+*.temp
+
+# Scripts de desarrollo
+scripts/
+migrations/
+run-seed.ps1
+run-seed.sh
+
+# ESPECÍFICO PARA PROYECTO DE TEXTO/SESGOS
+# ============================================
+
+# Archivos de texto generados (pueden ser muy largos)
+generated-texts/
+output/
+samples/
+examples/
+training-data/
+corpus/
+datasets/
+
+# Uploads de usuarios
+uploads/
+public/uploads/
+
+# Archivos de configuración Docker
+docker-compose.*.yml
+Dockerfile*
+
+# Git y control de versiones
+.git/
+.github/
+
+# IDEs
+.vscode/
+.idea/
+
+# Environment
+.env*
+
+# NOTA IMPORTANTE:
+# Este archivo ayuda a los agentes de IA a identificar qué archivos
+# pueden ser ignorados para reducir el consumo de tokens y mejorar
+# la eficiencia del procesamiento.

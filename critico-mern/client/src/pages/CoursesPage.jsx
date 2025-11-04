@@ -55,7 +55,7 @@ const CoursesPage = () => {
           ]
         });
       }
-      handleCloseForm();
+      handleCloseModal();
       await fetchCourses();
     } catch (err) {
       setError(err.response?.data?.message || `No se pudo ${editingCourse ? 'actualizar' : 'crear'} el curso`);

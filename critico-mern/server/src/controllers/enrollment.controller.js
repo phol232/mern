@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Enrollment = require('../models/Enrollment');
 const Course = require('../models/Course');
 const ReadingProgress = require('../models/ReadingProgress');
@@ -5,9 +6,29 @@ const QuestionAttempt = require('../models/QuestionAttempt');
 const Text = require('../models/Text');
 const Topic = require('../models/Topic');
 
+// Función helper para validar ObjectId
+const isValidObjectId = (id) => {
+  return mongoose.Types.ObjectId.isValid(id) && id.length === 24;
+};
+
 const enrollStudent = async (req, res, next) => {
   try {
     const { studentId, courseId } = req.body;
+
+    // Validar ObjectIds
+    if (!isValidObjectId(studentId)) {
+      return res.status(400).json({ 
+        message: 'ID de estudiante inválido',
+        details: `El ID "${studentId}" no es un ObjectId válido (debe tener 24 caracteres)`
+      });
+    }
+
+    if (!isValidObjectId(courseId)) {
+      return res.status(400).json({ 
+        message: 'ID de curso inválido',
+        details: `El ID "${courseId}" no es un ObjectId válido (debe tener 24 caracteres)`
+      });
+    }
 
     const course = await Course.findById(courseId);
     if (!course) {
@@ -50,6 +71,14 @@ const getStudentEnrollments = async (req, res, next) => {
   try {
     const { studentId } = req.params;
 
+    // Validar ObjectId
+    if (!isValidObjectId(studentId)) {
+      return res.status(400).json({ 
+        message: 'ID de estudiante inválido',
+        details: `El ID "${studentId}" no es un ObjectId válido (debe tener 24 caracteres)`
+      });
+    }
+
     const enrollments = await Enrollment.find({
       student: studentId,
       status: 'active'
@@ -69,6 +98,14 @@ const getStudentEnrollments = async (req, res, next) => {
 const getStudentProgress = async (req, res, next) => {
   try {
     const { studentId } = req.params;
+
+    // Validar ObjectId
+    if (!isValidObjectId(studentId)) {
+      return res.status(400).json({ 
+        message: 'ID de estudiante inválido',
+        details: `El ID "${studentId}" no es un ObjectId válido (debe tener 24 caracteres)`
+      });
+    }
 
     const enrollments = await Enrollment.find({
       student: studentId,
@@ -133,6 +170,21 @@ const checkEnrollment = async (req, res, next) => {
   try {
     const { studentId, courseId } = req.params;
 
+    // Validar ObjectIds
+    if (!isValidObjectId(studentId)) {
+      return res.status(400).json({ 
+        message: 'ID de estudiante inválido',
+        details: `El ID "${studentId}" no es un ObjectId válido (debe tener 24 caracteres)`
+      });
+    }
+
+    if (!isValidObjectId(courseId)) {
+      return res.status(400).json({ 
+        message: 'ID de curso inválido',
+        details: `El ID "${courseId}" no es un ObjectId válido (debe tener 24 caracteres)`
+      });
+    }
+
     const enrollment = await Enrollment.findOne({
       student: studentId,
       course: courseId,
@@ -153,6 +205,14 @@ const checkEnrollment = async (req, res, next) => {
 const updateLastAccess = async (req, res, next) => {
   try {
     const { enrollmentId } = req.params;
+
+    // Validar ObjectId
+    if (!isValidObjectId(enrollmentId)) {
+      return res.status(400).json({ 
+        message: 'ID de inscripción inválido',
+        details: `El ID "${enrollmentId}" no es un ObjectId válido (debe tener 24 caracteres)`
+      });
+    }
 
     const enrollment = await Enrollment.findByIdAndUpdate(
       enrollmentId,
@@ -179,6 +239,21 @@ const updateLastAccess = async (req, res, next) => {
 const unenrollStudent = async (req, res, next) => {
   try {
     const { studentId, courseId } = req.params;
+
+    // Validar ObjectIds
+    if (!isValidObjectId(studentId)) {
+      return res.status(400).json({ 
+        message: 'ID de estudiante inválido',
+        details: `El ID "${studentId}" no es un ObjectId válido (debe tener 24 caracteres)`
+      });
+    }
+
+    if (!isValidObjectId(courseId)) {
+      return res.status(400).json({ 
+        message: 'ID de curso inválido',
+        details: `El ID "${courseId}" no es un ObjectId válido (debe tener 24 caracteres)`
+      });
+    }
 
     const enrollment = await Enrollment.findOneAndDelete({
       student: studentId,

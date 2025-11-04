@@ -29,7 +29,6 @@ const StudentEvaluationPage = () => {
   const [generatingFeedback, setGeneratingFeedback] = useState(false);
   const [feedbackError, setFeedbackError] = useState(null);
   
-  // ✅ NUEVO: Estados para análisis de sesgos
   const [showBiasModal, setShowBiasModal] = useState(false);
   const [biasAnalysis, setBiasAnalysis] = useState(null);
   const [analyzingBias, setAnalyzingBias] = useState(false);

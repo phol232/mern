@@ -321,18 +321,42 @@ async function regenerateText(req, res) {
       });
     }
 
-    // Generar prompt de mejora
-    const improvementPrompt = await biasService.generateImprovementPrompt(
-      'text',
-      textId,
-      instrucciones || ''
-    );
+    // 🔥 CONFIGURACIÓN OPTIMIZADA para CORA
+    const optimizedConfig = {
+      // Datos básicos del texto
+      tema: text.title || 'Marco Teórico',
+      publico: text.metadata?.publico || 'estudiantes',
+      nivel: text.difficulty || 'intermedio',
+      proposito: text.metadata?.proposito || 'aplicar',
+      ventanaInicio: text.metadata?.ventana?.split('-')[0] || '2020',
+      ventanaFin: text.metadata?.ventana?.split('-')[1] || '2025',
+      idioma: text.metadata?.idioma || 'español',
+      
+      // Sesgos detectados (solo palabras problemáticas)
+      sesgosDetectados: biases.map(bias => ({
+        type: bias.type,
+        palabrasProblematicas: bias.palabrasProblematicas?.slice(0, 5) || [],
+        severity: bias.severity
+      })).slice(0, 5), // Máximo 5 sesgos
+      
+      // Texto original (truncado si es muy largo)
+      textoOriginal: text.content.length > 2000 
+        ? text.content.substring(0, 1200) + '\n\n[...CONTENIDO TRUNCADO...]\n\n' + text.content.substring(text.content.length - 800)
+        : text.content,
+      
+      // Instrucciones del docente (truncadas)
+      instruccionesDocente: instrucciones && instrucciones.length > 200 
+        ? instrucciones.substring(0, 197) + '...'
+        : instrucciones
+    };
 
-    // Construir mensaje para CORA
-    const configMessage = `${improvementPrompt}\n\nTEXTO ORIGINAL:\n${text.content}`;
+    console.log('📊 Payload optimizado para regeneración:');
+    console.log(`   - Sesgos incluidos: ${optimizedConfig.sesgosDetectados.length}`);
+    console.log(`   - Texto original: ${optimizedConfig.textoOriginal.length} caracteres`);
+    console.log(`   - Instrucciones: ${(optimizedConfig.instruccionesDocente || '').length} caracteres`);
 
-    // Regenerar texto con CORA
-    const coraResponse = await coraService.generateEducationalText(configMessage);
+    // Regenerar texto con CORA usando configuración optimizada
+    const coraResponse = await coraService.generateEducationalText(optimizedConfig);
     
     if (!coraResponse || !coraResponse.content) {
       throw new Error('No se pudo generar el texto mejorado');
@@ -352,7 +376,7 @@ async function regenerateText(req, res) {
     
     await text.save();
 
-    // Re-analizar sesgos del texto mejorado
+    // Re-analizar sesgos del texto mejorado (análisis simplificado)
     const newResult = await biasService.analyzeBiasesAndSave(
       text.content,
       'text',
@@ -379,7 +403,7 @@ async function regenerateText(req, res) {
     });
   } catch (err) {
     console.error('Error al regenerar texto:', err);
-    res.status(500).json({ message: 'Error al regenerar el texto', error: err.message });
+    res.status(500).json({ message: 'Error al regenerar el texto' });
   }
 }
 
