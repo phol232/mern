@@ -1219,6 +1219,7 @@ const CourseDetailPage = () => {
                     type="button"
                     className="button-generate"
                     onClick={() => handleOpenGenerateModal(topic)}
+                    data-cy="generate-text-button"
                   >
                     🤖 Generar texto IA
                   </button>

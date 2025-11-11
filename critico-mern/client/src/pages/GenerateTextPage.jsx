@@ -186,6 +186,7 @@ const GenerateTextPage = () => {
               className="button-primary"
               onClick={handleGenerateText}
               disabled={loading || !config.tema || !config.publico}
+              data-cy="generate-text-button"
             >
               {loading ? 'Generando...' : '🤖 Generar texto con IA'}
             </button>

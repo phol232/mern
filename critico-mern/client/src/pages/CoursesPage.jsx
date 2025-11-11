@@ -98,7 +98,7 @@ const CoursesPage = () => {
           </p>
         </div>
         {canCreate && (
-          <button type="button" className="button-primary" onClick={() => setShowModal(true)}>
+          <button type="button" className="button-primary" onClick={() => setShowModal(true)} data-cy="create-course-button">
             Nuevo curso
           </button>
         )}
@@ -107,16 +107,16 @@ const CoursesPage = () => {
       {error && <p className="error-text">{error}</p>}
       {isLoading && <p>Cargando…</p>}
 
-      <section className="courses-grid">
+      <section className="courses-grid" data-cy="course-list">
         {courses.map((course) => (
-          <article key={course.id} className="course-card">
+          <article key={course.id} className="course-card" data-cy="course-card">
             <header>
               <span className="badge badge-gradient">{course.level || 'Hábito crítico'}</span>
               {course.dueSoon && (
                 <span className="badge badge-warning">Vence pronto</span>
               )}
             </header>
-            <h3>{course.title}</h3>
+            <h3 data-cy="course-title">{course.title}</h3>
             <p>{course.description || 'Sin descripción'}</p>
             <div className="course-meta">
               <div>

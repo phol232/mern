@@ -1,0 +1,37 @@
+{
+  "teacher": {
+    "email": "docente.test@yamycorp.com",
+    "password": "TestPassword123!",
+    "firstName": "Docente",
+    "lastName": "Prueba",
+    "role": "teacher"
+  },
+  "student": {
+    "email": "estudiante.test@yamycorp.com",
+    "password": "TestPassword123!",
+    "firstName": "Estudiante",
+    "lastName": "Prueba",
+    "role": "student"
+  },
+  "admin": {
+    "email": "admin.test@yamycorp.com",
+    "password": "TestPassword123!",
+    "firstName": "Admin",
+    "lastName": "Prueba",
+    "role": "admin"
+  },
+  "teacherBackup": {
+    "email": "docente.backup@yamycorp.com",
+    "password": "TestPassword123!",
+    "firstName": "Docente",
+    "lastName": "Backup",
+    "role": "teacher"
+  },
+  "studentBackup": {
+    "email": "estudiante.backup@yamycorp.com",
+    "password": "TestPassword123!",
+    "firstName": "Estudiante",
+    "lastName": "Backup",
+    "role": "student"
+  }
+}

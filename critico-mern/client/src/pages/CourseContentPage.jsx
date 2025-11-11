@@ -626,6 +626,7 @@ const CourseContentPage = () => {
                   onChange={(e) => setQuestionForm({ ...questionForm, prompt: e.target.value })}
                   placeholder="Escribe la pregunta aquí..."
                   rows={4}
+                  data-cy="create-question-button"
                   required
                 />
               </div>

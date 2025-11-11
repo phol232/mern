@@ -48,6 +48,7 @@ const LoginPage = () => {
             placeholder="tu.nombre@institucion.edu"
             value={form.email}
             onChange={handleChange}
+            data-cy="email-input"
             required
           />
         </div>
@@ -61,16 +62,17 @@ const LoginPage = () => {
             placeholder="••••••••"
             value={form.password}
             onChange={handleChange}
+            data-cy="password-input"
             required
           />
         </div>
       </div>
 
-      {error && <div className="auth-error">{error}</div>}
+      {error && <div className="auth-error" data-cy="error-message">{error}</div>}
       {forgotMessage && <div className="auth-info">{forgotMessage}</div>}
 
       <div className="auth-actions">
-        <button type="submit" className="button-primary" disabled={isLoading}>
+        <button type="submit" className="button-primary" disabled={isLoading} data-cy="login-button">
           {isLoading ? 'Ingresando…' : 'Entrar al panel'}
         </button>
         <button

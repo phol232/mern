@@ -1,0 +1,20 @@
+{
+  "literalQuestion": {
+    "text": "¿Cuál es la idea principal del texto?",
+    "type": "literal",
+    "hint": "Busca la oración que resume el tema central",
+    "expectedAnswer": "El pensamiento crítico como habilidad desarrollable"
+  },
+  "inferentialQuestion": {
+    "text": "¿Qué se puede inferir sobre la importancia del análisis múltiple?",
+    "type": "inferencial",
+    "hint": "Considera las implicaciones de ver diferentes perspectivas",
+    "expectedAnswer": "Permite una comprensión más completa y objetiva"
+  },
+  "criticalQuestion": {
+    "text": "Evalúa la validez del argumento presentado en el texto",
+    "type": "critica",
+    "hint": "Analiza la evidencia y la lógica del razonamiento",
+    "expectedAnswer": "El argumento es sólido pero podría fortalecerse con ejemplos"
+  }
+}

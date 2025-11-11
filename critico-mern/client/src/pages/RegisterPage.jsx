@@ -68,6 +68,7 @@ const RegisterPage = () => {
             value={form.email}
             onChange={handleChange}
             placeholder="mariana.soto@critico.edu"
+            data-cy="email-input"
             required
           />
         </div>
@@ -80,6 +81,7 @@ const RegisterPage = () => {
             value={form.password}
             onChange={handleChange}
             placeholder="Mínimo 8 caracteres"
+            data-cy="password-input"
             required
           />
         </div>
@@ -93,10 +95,10 @@ const RegisterPage = () => {
         </div>
       </div>
 
-      {error && <div className="auth-error">{error}</div>}
+      {error && <div className="auth-error" data-cy="error-message">{error}</div>}
 
       <div className="auth-actions">
-        <button type="submit" className="button-primary" disabled={isLoading}>
+        <button type="submit" className="button-primary" disabled={isLoading} data-cy="register-button">
           {isLoading ? 'Creando cuenta…' : 'Unirme a Critico'}
         </button>
         <span className="auth-footer">

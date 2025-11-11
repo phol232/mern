@@ -1,0 +1,26 @@
+{
+  "name": "critico-mern-cypress",
+  "version": "1.0.0",
+  "description": "Cypress E2E tests for CRÍTICO MERN system",
+  "scripts": {
+    "cypress:open": "cypress open",
+    "cypress:run": "cypress run",
+    "cypress:run:chrome": "cypress run --browser chrome",
+    "cypress:run:firefox": "cypress run --browser firefox",
+    "cypress:run:organized": "cypress run && npm run cypress:organize",
+    "cypress:report": "npx mochawesome-merge cypress/reports/*.json -o cypress/reports/merged-report.json && npx marge cypress/reports/merged-report.json -o cypress/reports --reportTitle 'CRÍTICO E2E Test Report' --reportPageTitle 'CRÍTICO E2E Tests'",
+    "cypress:report:open": "npm run cypress:report && open cypress/reports/merged-report.html",
+    "cypress:organize": "node cypress/scripts/organize-artifacts.js organize",
+    "cypress:clean": "rm -rf cypress/screenshots cypress/videos cypress/reports cypress/downloads cypress/artifacts",
+    "cypress:clean:old": "node cypress/scripts/organize-artifacts.js cleanup 7"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.24",
+    "cypress": "^13.17.0",
+    "eslint-plugin-cypress": "^2.15.2",
+    "mochawesome": "^7.1.4",
+    "mochawesome-merge": "^4.4.1",
+    "mochawesome-report-generator": "^6.3.2",
+    "typescript": "^5.9.3"
+  }
+}

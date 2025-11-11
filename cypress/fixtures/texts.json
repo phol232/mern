@@ -1,0 +1,16 @@
+{
+  "textWithBiases": {
+    "title": "Texto con Sesgos para Pruebas",
+    "content": "Todos los estudiantes siempre deben estudiar porque nunca se sabe cuándo habrá un examen. Los expertos dicen que es absolutamente necesario. Obviamente, la única manera de tener éxito es seguir estas reglas sin excepción. Cualquier persona inteligente estaría de acuerdo con esto.",
+    "difficulty": "intermediate",
+    "estimatedReadingTime": 5,
+    "expectedBiases": ["S-UNIV", "S-POLAR", "S-AUT", "S-GEN"]
+  },
+  "textWithoutBiases": {
+    "title": "Texto Neutral para Pruebas",
+    "content": "El pensamiento crítico es una habilidad que se desarrolla con práctica. Algunos estudiantes encuentran útil analizar argumentos desde múltiples perspectivas. La investigación sugiere que considerar diferentes puntos de vista puede contribuir a una comprensión más completa de temas complejos. Existen diversas estrategias que los estudiantes pueden explorar para mejorar sus habilidades analíticas.",
+    "difficulty": "beginner",
+    "estimatedReadingTime": 3,
+    "expectedBiases": []
+  }
+}

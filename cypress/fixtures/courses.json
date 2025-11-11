@@ -1,0 +1,12 @@
+{
+  "basicCourse": {
+    "title": "Curso de Prueba E2E - Pensamiento Crítico Básico",
+    "description": "Curso creado automáticamente por Cypress para pruebas E2E",
+    "level": "Básico"
+  },
+  "intermediateCourse": {
+    "title": "Curso de Prueba E2E - Análisis Avanzado",
+    "description": "Curso intermedio para validar funcionalidades complejas",
+    "level": "Intermedio"
+  }
+}

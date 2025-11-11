@@ -561,7 +561,7 @@ const StudentEvaluationPage = () => {
                   {courseTexts.map((text) => (
                     <div key={text.id} className="text-item" onClick={() => handleSelectTextToView(text)}>
                       <div className="text-item-header">
-                        <h4>{text.title}</h4>
+                        <h4 data-cy="text-content">{text.title}</h4>
                         {text.hasAnswers && (
                           <span className="status-badge completed">✓ Respondido</span>
                         )}
@@ -594,7 +594,7 @@ const StudentEvaluationPage = () => {
                   <span className="meta-badge">⏱️ {selectedText.estimatedTime} min</span>
                 </div>
                 
-                <div className="text-content">
+                <div className="text-content" data-cy="text-content">
                   {selectedText.content ? (
                     <div dangerouslySetInnerHTML={{ __html: selectedText.content.replace(/\n/g, '<br/>') }} />
                   ) : (
@@ -668,6 +668,7 @@ const StudentEvaluationPage = () => {
                           placeholder="Escribe tu respuesta aquí..."
                           rows={4}
                           className="answer-textarea"
+                          data-cy="answer-input"
                         />
                         
                         {/* Botones de acción por pregunta */}
@@ -732,6 +733,7 @@ const StudentEvaluationPage = () => {
                             <button
                               onClick={() => handleSubmitSingleAnswer(question.id)}
                               disabled={submitting}
+                              data-cy="submit-answer-button"
                               style={{
                                 padding: '8px 16px',
                                 backgroundColor: attempt?.isModified ? '#ffc107' : '#28a745',
@@ -787,6 +789,7 @@ const StudentEvaluationPage = () => {
                                 type="button"
                                 onClick={() => handleAnalyzeBias(question.id)}
                                 disabled={analyzingBias || attempt.isModified}
+                                data-cy="analyze-bias-button"
                                 style={{
                                   padding: '0.5rem 1rem',
                                   background: attempt.isModified ? '#ccc' : '#ff9800',
@@ -965,10 +968,10 @@ const StudentEvaluationPage = () => {
       {/* ✅ NUEVO: Modal para mostrar Análisis de Sesgos */}
       {showBiasModal && biasAnalysis && (
         <div className="modal-overlay" onClick={() => setShowBiasModal(false)}>
-          <div className="modal-content modal-large" onClick={(e) => e.stopPropagation()} style={{ maxHeight: '85vh', display: 'flex', flexDirection: 'column', maxWidth: '800px' }}>
+          <div className="modal-content modal-large" onClick={(e) => e.stopPropagation()} style={{ maxHeight: '85vh', display: 'flex', flexDirection: 'column', maxWidth: '800px' }} data-cy="bias-modal">
             
             <div className="modal-header" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
-              <h2>🔍 Análisis de Sesgos en tu Respuesta</h2>
+              <h2 data-cy="bias-level">🔍 Análisis de Sesgos en tu Respuesta</h2>
               <button className="modal-close" onClick={() => setShowBiasModal(false)} style={{ color: 'white' }}>✕</button>
             </div>
 
@@ -982,8 +985,8 @@ const StudentEvaluationPage = () => {
                   padding: '1.5rem',
                   marginBottom: '1.5rem',
                   border: '2px solid #e3f2fd'
-                }}>
-                  <h3 style={{ margin: '0 0 1rem 0', color: '#1976d2', fontSize: '1.1rem' }}>
+                }} data-cy="bias-card">
+                  <h3 style={{ margin: '0 0 1rem 0', color: '#1976d2', fontSize: '1.1rem' }} data-cy="bias-score">
                     📚 Análisis Detallado
                   </h3>
                   <div style={{
@@ -1026,7 +1029,7 @@ const StudentEvaluationPage = () => {
                 padding: '1.5rem',
                 marginTop: '1.5rem',
                 textAlign: 'center'
-              }}>
+              }} data-cy="recommendations">
                 <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>💪</div>
                 <p style={{ margin: 0, fontSize: '0.95rem', lineHeight: '1.6' }}>
                   <strong>Recuerda:</strong> El análisis de sesgos es una herramienta de aprendizaje. 

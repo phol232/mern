@@ -64,6 +64,9 @@ jspm_packages/
 config/secrets.js
 config/local.js
 
+# Cypress environment variables
+cypress.env.json
+
 # ============================================
 # MongoDB / Databases
 # ============================================
@@ -192,6 +195,13 @@ coverage/
 test-results/
 playwright-report/
 playwright/.cache/
+
+# Cypress
+cypress/screenshots/
+cypress/videos/
+cypress/reports/
+cypress/downloads/
+cypress/artifacts/
 
 # ============================================
 # Build / Dist

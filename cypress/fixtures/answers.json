@@ -1,0 +1,14 @@
+{
+  "answerWithBiases": {
+    "value": "Todos los estudiantes siempre necesitan pensar críticamente porque nunca se equivocan cuando lo hacen. Obviamente, esto es la única forma correcta de abordar cualquier problema académico. Los expertos están completamente de acuerdo en que esta es la mejor estrategia posible.",
+    "expectedBiasCount": 4,
+    "expectedBiases": ["S-UNIV", "S-POLAR", "S-GEN", "S-AUT"],
+    "expectedScore": 6.5
+  },
+  "answerWithoutBiases": {
+    "value": "El pensamiento crítico puede ayudar a los estudiantes a analizar información de manera más efectiva en algunos contextos académicos. Considerar múltiples perspectivas suele contribuir a una comprensión más profunda de los temas. La práctica regular de estas habilidades podría mejorar la capacidad de evaluación de argumentos.",
+    "expectedBiasCount": 0,
+    "expectedBiases": [],
+    "expectedScore": 12
+  }
+}

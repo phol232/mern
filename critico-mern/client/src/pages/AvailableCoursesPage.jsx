@@ -79,11 +79,11 @@ const AvailableCoursesPage = () => {
           <p className="empty-subtitle">Ya estás matriculado en todos los cursos activos</p>
         </div>
       ) : (
-        <div className="courses-grid">
+        <div className="courses-grid" data-cy="course-list">
           {availableCourses.map((course) => (
-            <div key={course.id} className="course-card">
+            <div key={course.id} className="course-card" data-cy="course-card">
               <div className="course-card-header">
-                <h3>{course.title}</h3>
+                <h3 data-cy="course-title">{course.title}</h3>
                 {course.tags && course.tags.length > 0 && (
                   <div className="course-tags">
                     {course.tags.map((tag, idx) => (
@@ -116,6 +116,7 @@ const AvailableCoursesPage = () => {
                   onClick={() => handleEnroll(course.id)}
                   disabled={enrolling === course.id}
                   className="btn-enroll"
+                  data-cy="enroll-button"
                 >
                   {enrolling === course.id ? '⏳ Matriculando...' : '✅ Matricularme'}
                 </button>

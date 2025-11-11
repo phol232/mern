@@ -202,13 +202,14 @@ const StudentChatbot = ({ currentText = null, currentCourse = null }) => {
         className={`chatbot-toggle ${isOpen ? 'open' : ''}`}
         onClick={() => setIsOpen(!isOpen)}
         title="Tutor Personal"
+        data-cy="chatbot-open-button"
       >
         {isOpen ? '✕' : '💬'}
       </button>
 
       {/* Panel del chatbot */}
       {isOpen && (
-        <div className="chatbot-panel">
+        <div className="chatbot-panel" data-cy="chatbot-window">
           {/* Header */}
           <div className="chatbot-header">
             <div className="chatbot-header-content">
@@ -238,7 +239,7 @@ const StudentChatbot = ({ currentText = null, currentCourse = null }) => {
           )}
 
           {/* Messages Area */}
-          <div className="chatbot-messages" ref={chatContainerRef}>
+          <div className="chatbot-messages" ref={chatContainerRef} data-cy="chatbot-messages">
             {messages.map((msg, index) => (
               <div key={index} className={`message ${msg.type}`}>
                 {msg.type === 'bot' && (
@@ -325,11 +326,13 @@ const StudentChatbot = ({ currentText = null, currentCourse = null }) => {
               placeholder="Escribe tu pregunta..."
               rows={2}
               disabled={isTyping}
+              data-cy="chatbot-message-input"
             />
             <button 
               className="chatbot-send-btn"
               onClick={handleSendMessage}
               disabled={!inputMessage.trim() || isTyping}
+              data-cy="chatbot-send-button"
             >
               {isTyping ? '⏳' : '📤'}
             </button>

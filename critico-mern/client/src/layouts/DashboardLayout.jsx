@@ -57,7 +57,7 @@ const DashboardLayout = () => {
               <span className="user-role">{user?.role === 'teacher' ? 'Docente' : user?.role === 'admin' ? 'Administrador' : 'Estudiante'}</span>
             </div>
           </div>
-          <button type="button" className="button-ghost" onClick={logout}>Cerrar sesión</button>
+          <button type="button" className="button-ghost" onClick={logout} data-cy="logout-button">Cerrar sesión</button>
         </div>
       </aside>
       <main className="dashboard-content">
