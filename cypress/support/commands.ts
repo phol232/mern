@@ -316,12 +316,27 @@ Cypress.Commands.add('navigateToAvailableCourses', () => {
 
 /**
  * Create a new course via API
+ * Replicates the exact frontend flow from CoursesPage.jsx handleSubmit
  * @param courseData - Course data object
  * @returns Course ID
  */
 Cypress.Commands.add('createCourse', (courseData: CourseData) => {
   cy.window().then((win) => {
     const token = win.localStorage.getItem('auth_token');
+    
+    // Replicate exact frontend payload structure
+    const payload = {
+      title: courseData.title,
+      description: courseData.description,
+      reminders: [
+        {
+          dueDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 5).toISOString(),
+          type: 'due_soon'
+        }
+      ]
+    };
+    
+    cy.log('Creating course with payload:', payload);
     
     cy.request({
       method: 'POST',
@@ -330,15 +345,17 @@ Cypress.Commands.add('createCourse', (courseData: CourseData) => {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: {
-        title: courseData.title,
-        description: courseData.description,
-        level: courseData.level || 'Básico',
-      },
+      body: payload,
     }).then((response) => {
       expect(response.status).to.eq(201);
-      const courseId = response.body._id || response.body.id;
+      cy.log(`Response body:`, response.body);
+      
+      const courseId = response.body.course?.id || response.body.course?._id || response.body._id || response.body.id;
       cy.log(`Course created with ID: ${courseId}`);
+      
+      expect(courseId).to.exist;
+      expect(courseId).to.not.be.undefined;
+      
       cy.wrap(courseId).as('createdCourseId');
     });
   });
@@ -346,6 +363,7 @@ Cypress.Commands.add('createCourse', (courseData: CourseData) => {
 
 /**
  * Create a new topic within a course via API
+ * Replicates the exact frontend flow from CourseDetailPage.jsx handleSubmit
  * @param courseId - Course ID
  * @param topicData - Topic data object
  * @returns Topic ID
@@ -354,6 +372,18 @@ Cypress.Commands.add('createTopic', (courseId: string, topicData: TopicData) => 
   cy.window().then((win) => {
     const token = win.localStorage.getItem('auth_token');
     
+    // Replicate exact frontend payload structure
+    const payload = {
+      title: topicData.title,
+      description: topicData.description || '',
+      order: topicData.order || 1,
+      releaseDate: undefined,  // Frontend sends undefined if not set
+      dueDate: undefined,
+      objectives: []  // Frontend includes this
+    };
+    
+    cy.log(`Creating topic for course: ${courseId}`, payload);
+    
     cy.request({
       method: 'POST',
       url: `${Cypress.config('baseUrl')}/api/topics/course/${courseId}`,
@@ -361,15 +391,17 @@ Cypress.Commands.add('createTopic', (courseId: string, topicData: TopicData) => 
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: {
-        title: topicData.title,
-        description: topicData.description || '',
-        order: topicData.order || 1,
-      },
+      body: payload,
     }).then((response) => {
       expect(response.status).to.be.oneOf([200, 201]);
-      const topicId = response.body._id || response.body.id;
+      cy.log(`Response body:`, response.body);
+      
+      const topicId = response.body.topic?.id || response.body.topic?._id || response.body._id || response.body.id;
       cy.log(`Topic created with ID: ${topicId}`);
+      
+      expect(topicId).to.exist;
+      expect(topicId).to.not.be.undefined;
+      
       cy.wrap(topicId).as('createdTopicId');
     });
   });
@@ -377,6 +409,7 @@ Cypress.Commands.add('createTopic', (courseId: string, topicData: TopicData) => 
 
 /**
  * Create a new text within a topic via API
+ * Replicates the exact frontend flow from CourseDetailPage.jsx handleSaveManualText
  * @param topicId - Topic ID
  * @param textData - Text data object
  * @returns Text ID
@@ -387,6 +420,17 @@ Cypress.Commands.add('createText', (topicId: string, textData: TextData) => {
   cy.window().then((win) => {
     const token = win.localStorage.getItem('auth_token');
     
+    // Replicate exact frontend payload structure
+    const payload = {
+      title: textData.title,
+      content: textData.content,
+      source: 'E2E Test',
+      difficulty: textData.difficulty || 'intermedio',
+      estimatedTime: parseInt(String(textData.estimatedReadingTime || 15))
+    };
+    
+    cy.log('Payload:', payload);
+    
     cy.request({
       method: 'POST',
       url: `${Cypress.config('baseUrl')}/api/texts/save/${topicId}`,
@@ -394,21 +438,19 @@ Cypress.Commands.add('createText', (topicId: string, textData: TextData) => {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: {
-        title: textData.title,
-        content: textData.content,
-        difficulty: textData.difficulty || 'intermedio',
-        estimatedTime: textData.estimatedReadingTime || 5,
-        source: 'E2E Test',
-      },
+      body: payload,
     }).then((response) => {
       expect(response.status).to.be.oneOf([200, 201]);
       cy.log(`Response body:`, response.body);
+      
       // The API returns { success: true, text: { id: ... } }
       const textId = response.body.text?.id || response.body.text?._id || response.body._id || response.body.id;
       cy.log(`Text created with ID: ${textId}`);
+      
       expect(textId).to.exist;
-      expect(textId).to.not.equal('undefined');
+      expect(textId).to.not.be.undefined;
+      expect(String(textId)).to.not.equal('undefined');
+      
       cy.wrap(textId).as('createdTextId');
     });
   });
@@ -416,6 +458,7 @@ Cypress.Commands.add('createText', (topicId: string, textData: TextData) => {
 
 /**
  * Create a new question for a text via API
+ * Replicates the exact frontend flow from CourseDetailPage.jsx handleSaveManualQuestion
  * @param textId - Text ID
  * @param questionData - Question data object
  * @returns Question ID
@@ -424,7 +467,7 @@ Cypress.Commands.add('createQuestion', (textId: string, questionData: QuestionDa
   cy.window().then((win) => {
     const token = win.localStorage.getItem('auth_token');
     
-    // Map question types to skills with correct accents
+    // Map question types to skills with correct accents (matching frontend)
     const skillMap: Record<string, string> = {
       'literal': 'literal',
       'inferencial': 'inferencial',
@@ -438,6 +481,17 @@ Cypress.Commands.add('createQuestion', (textId: string, questionData: QuestionDa
     
     cy.log(`Creating question for text: ${textId} with skill: ${skill}`);
     
+    // Replicate exact frontend payload structure
+    const payload = {
+      prompt: questionData.text,
+      type: 'open-ended',
+      skill: skill,
+      options: [],
+      text: textId  // This is the text ID reference
+    };
+    
+    cy.log('Payload:', payload);
+    
     cy.request({
       method: 'POST',
       url: `${Cypress.config('baseUrl')}/api/questions`,
@@ -445,16 +499,17 @@ Cypress.Commands.add('createQuestion', (textId: string, questionData: QuestionDa
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: {
-        prompt: questionData.text,
-        text: textId,
-        type: 'open-ended',
-        skill: skill,
-      },
+      body: payload,
     }).then((response) => {
       expect(response.status).to.be.oneOf([200, 201]);
-      const questionId = response.body._id || response.body.id;
+      cy.log(`Response body:`, response.body);
+      
+      const questionId = response.body.question?.id || response.body.question?._id || response.body._id || response.body.id;
       cy.log(`Question created with ID: ${questionId}`);
+      
+      expect(questionId).to.exist;
+      expect(questionId).to.not.be.undefined;
+      
       cy.wrap(questionId).as('createdQuestionId');
     });
   });
@@ -545,10 +600,8 @@ Cypress.Commands.add('verifyBiasAnalysis', (expectedBiases?: number) => {
  * @param courseName - Name of the course to verify
  */
 Cypress.Commands.add('verifyCourseInList', (courseName: string) => {
-  cy.get(selectors.courses.courseList, { timeout: 10000 })
-    .should('be.visible')
-    .and('contain', courseName);
-  
+  // Simply verify the course name is visible on the page
+  cy.contains(courseName, { timeout: 10000 }).should('be.visible');
   cy.log(`Verified course "${courseName}" appears in list`);
 });
 

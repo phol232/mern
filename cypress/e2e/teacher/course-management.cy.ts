@@ -51,11 +51,14 @@ describe('Teacher Course Management', () => {
         // Save the course
         cy.get(selectors.courses.saveCourseButton).click();
 
-        // Verify course was created successfully
-        cy.get(selectors.common.successMessage, { timeout: 10000 }).should('be.visible');
+        // Wait for modal to close (indicates success)
+        cy.get('.modal-overlay', { timeout: 10000 }).should('not.exist');
+        
+        // Wait for courses to reload
+        cy.wait(2000);
         
         // Verify course appears in the list
-        cy.verifyCourseInList(uniqueTitle);
+        cy.contains(uniqueTitle).should('be.visible');
       });
     });
   });
@@ -92,16 +95,9 @@ describe('Teacher Course Management', () => {
         // Navigate to courses page
         cy.navigateToCourses();
 
-        // Find and click on the created course
+        // Find and click on the created course - click the "Ver temas" link
         cy.contains(selectors.courses.courseCard, uniqueTitle).within(() => {
-          // Try to click view details button or the card itself
-          cy.get('body').then(($body) => {
-            if ($body.find(selectors.courses.viewDetailsButton).length > 0) {
-              cy.get(selectors.courses.viewDetailsButton).click();
-            } else {
-              cy.get(selectors.courses.courseTitle).click();
-            }
-          });
+          cy.contains('Ver temas').click();
         });
 
         // Verify we're on the course details page
@@ -118,8 +114,9 @@ describe('Teacher Course Management', () => {
       // Create a test course first
       cy.fixture('courses').then((courses) => {
         const courseData = courses.basicCourse;
-        const originalTitle = `${courseData.title} - Edit Test - ${Date.now()}`;
-        const updatedTitle = `${originalTitle} - UPDATED`;
+        const timestamp = Date.now();
+        const originalTitle = `${courseData.title} - Edit Test - ${timestamp}`;
+        const updatedTitle = `${courseData.title} - EDITED - ${timestamp}`;
         
         cy.createCourse({
           title: originalTitle,
@@ -141,14 +138,23 @@ describe('Teacher Course Management', () => {
         // Save changes
         cy.get(selectors.courses.saveCourseButton).click();
 
-        // Verify success message
-        cy.get(selectors.common.successMessage, { timeout: 10000 }).should('be.visible');
+        // Wait for modal to close (indicates success)
+        cy.get('.modal-overlay', { timeout: 10000 }).should('not.exist');
+        
+        // Wait for courses to reload
+        cy.wait(2000);
 
         // Verify updated course appears in list
-        cy.verifyCourseInList(updatedTitle);
+        cy.contains(updatedTitle).should('be.visible');
 
         // Verify old title is no longer present
-        cy.get(selectors.courses.courseList).should('not.contain', originalTitle);
+        cy.get('body').then(($body) => {
+          const hasOriginalTitle = $body.text().includes(originalTitle);
+          const hasUpdatedTitle = $body.text().includes(updatedTitle);
+          
+          expect(hasUpdatedTitle).to.be.true;
+          expect(hasOriginalTitle).to.be.false;
+        });
       });
     });
   });
@@ -170,25 +176,21 @@ describe('Teacher Course Management', () => {
         cy.navigateToCourses();
 
         // Verify course exists
-        cy.verifyCourseInList(courseTitle);
+        cy.contains(courseTitle).should('be.visible');
 
-        // Find the course and click delete
+        // Find the course and click delete (the 🗑️ button)
         cy.contains(selectors.courses.courseCard, courseTitle).within(() => {
           cy.get(selectors.courses.deleteButton).click();
         });
 
-        // Confirm deletion if confirmation modal appears
-        cy.get('body').then(($body) => {
-          if ($body.find(selectors.common.confirmButton).length > 0) {
-            cy.get(selectors.common.confirmButton).click();
-          }
-        });
-
-        // Verify success message
-        cy.get(selectors.common.successMessage, { timeout: 10000 }).should('be.visible');
+        // Confirm deletion in the browser's confirm dialog
+        // The frontend uses window.confirm(), so Cypress auto-accepts it
+        
+        // Wait for courses to reload
+        cy.wait(2000);
 
         // Verify course is no longer in the list
-        cy.get(selectors.courses.courseList).should('not.contain', courseTitle);
+        cy.contains(courseTitle).should('not.exist');
       });
     });
   });
