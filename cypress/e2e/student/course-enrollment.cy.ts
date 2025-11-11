@@ -29,35 +29,35 @@ describe('Student Course Enrollment', () => {
         description: courses.basicCourse.description,
         level: courses.basicCourse.level,
       });
-    });
 
-    cy.get('@createdCourseId').then((courseId) => {
-      testCourseId = String(courseId);
-      
-      // Create a topic in the course
-      cy.createTopic(testCourseId, {
-        title: 'Tema de Prueba E2E',
-        description: 'Tema creado para pruebas de inscripción',
-        order: 1,
-      });
-    });
+      cy.get('@createdCourseId').then((courseId) => {
+        testCourseId = String(courseId);
+        
+        // Create a topic in the course
+        cy.createTopic(testCourseId, {
+          title: 'Tema de Prueba E2E',
+          description: 'Tema creado para pruebas de inscripción',
+          order: 1,
+        });
 
-    cy.get('@createdTopicId').then((topicId) => {
-      testTopicId = String(topicId);
-      
-      // Create a text in the topic
-      cy.fixture('texts').then((texts) => {
-        cy.createText(testTopicId, {
-          title: texts.textWithoutBiases.title,
-          content: texts.textWithoutBiases.content,
-          difficulty: texts.textWithoutBiases.difficulty,
-          estimatedReadingTime: texts.textWithoutBiases.estimatedReadingTime,
+        cy.get('@createdTopicId').then((topicId) => {
+          testTopicId = String(topicId);
+          
+          // Create a text in the topic
+          cy.fixture('texts').then((texts) => {
+            cy.createText(testTopicId, {
+              title: texts.textWithoutBiases.title,
+              content: texts.textWithoutBiases.content,
+              difficulty: texts.textWithoutBiases.difficulty,
+              estimatedReadingTime: texts.textWithoutBiases.estimatedReadingTime,
+            });
+
+            cy.get('@createdTextId').then((textId) => {
+              testTextId = String(textId);
+            });
+          });
         });
       });
-    });
-
-    cy.get('@createdTextId').then((textId) => {
-      testTextId = String(textId);
     });
   });
 

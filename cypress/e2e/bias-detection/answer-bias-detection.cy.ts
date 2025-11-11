@@ -36,50 +36,50 @@ describe('Answer Bias Detection - Cognitive Biases', () => {
         description: courses.basicCourse.description,
         level: courses.basicCourse.level,
       });
-    });
 
-    cy.get('@createdCourseId').then((courseId) => {
-      testCourseId = String(courseId);
+      cy.get('@createdCourseId').then((courseId) => {
+        testCourseId = String(courseId);
 
-      cy.createTopic(testCourseId, {
-        title: 'Tema de Detección de Sesgos Cognitivos',
-        description: 'Tema para pruebas de detección de sesgos en respuestas',
-        order: 1,
-      });
-    });
+        cy.createTopic(testCourseId, {
+          title: 'Tema de Detección de Sesgos Cognitivos',
+          description: 'Tema para pruebas de detección de sesgos en respuestas',
+          order: 1,
+        });
 
-    cy.get('@createdTopicId').then((topicId) => {
-      testTopicId = String(topicId);
+        cy.get('@createdTopicId').then((topicId) => {
+          testTopicId = String(topicId);
 
-      cy.fixture('texts').then((texts) => {
-        cy.createText(testTopicId, {
-          title: texts.textWithoutBiases.title,
-          content: texts.textWithoutBiases.content,
-          difficulty: texts.textWithoutBiases.difficulty,
-          estimatedReadingTime: texts.textWithoutBiases.estimatedReadingTime,
+          cy.fixture('texts').then((texts) => {
+            cy.createText(testTopicId, {
+              title: texts.textWithoutBiases.title,
+              content: texts.textWithoutBiases.content,
+              difficulty: texts.textWithoutBiases.difficulty,
+              estimatedReadingTime: texts.textWithoutBiases.estimatedReadingTime,
+            });
+
+            cy.get('@createdTextId').then((textId) => {
+              testTextId = String(textId);
+
+              cy.fixture('questions').then((questions) => {
+                cy.createQuestion(testTextId, {
+                  text: questions.criticalQuestion.text,
+                  type: questions.criticalQuestion.type,
+                  hint: questions.criticalQuestion.hint,
+                });
+
+                cy.get('@createdQuestionId').then((qId) => {
+                  testQuestionId = String(qId);
+
+                  // Enroll student
+                  cy.loginAsStudent();
+                  cy.enrollStudent(testCourseId);
+                });
+              });
+            });
+          });
         });
       });
     });
-
-    cy.get('@createdTextId').then((textId) => {
-      testTextId = String(textId);
-
-      cy.fixture('questions').then((questions) => {
-        cy.createQuestion(testTextId, {
-          text: questions.criticalQuestion.text,
-          type: questions.criticalQuestion.type,
-          hint: questions.criticalQuestion.hint,
-        });
-      });
-    });
-
-    cy.get('@createdQuestionId').then((qId) => {
-      testQuestionId = String(qId);
-    });
-
-    // Enroll student
-    cy.loginAsStudent();
-    cy.enrollStudent(testCourseId);
   });
 
   after(() => {

@@ -30,8 +30,11 @@ describe('Authentication - Login', () => {
         cy.url({ timeout: 15000 }).should('include', '/app');
         
         // Verify token is saved in localStorage
-        cy.window().its('localStorage.token').should('exist');
-        cy.window().its('localStorage.token').should('not.be.empty');
+        cy.window().then((win) => {
+          const token = win.localStorage.getItem('auth_token');
+          expect(token).to.exist;
+          expect(token).to.not.be.empty;
+        });
         
         // Verify user is on dashboard/app page
         cy.get('body').should('be.visible');
@@ -57,7 +60,10 @@ describe('Authentication - Login', () => {
         cy.url({ timeout: 15000 }).should('include', '/app');
         
         // Verify authentication token exists
-        cy.window().its('localStorage.token').should('exist');
+        cy.window().then((win) => {
+          const token = win.localStorage.getItem('auth_token');
+          expect(token).to.exist;
+        });
       });
     });
 
@@ -73,12 +79,18 @@ describe('Authentication - Login', () => {
         cy.url({ timeout: 15000 }).should('include', '/app');
         
         // Store token for verification
-        cy.window().its('localStorage.token').then((token) => {
+        cy.window().then((win) => {
+          const token = win.localStorage.getItem('auth_token');
+          expect(token).to.exist;
+          
           // Reload the page
           cy.reload();
           
           // Verify token still exists after reload
-          cy.window().its('localStorage.token').should('equal', token);
+          cy.window().then((reloadedWin) => {
+            const reloadedToken = reloadedWin.localStorage.getItem('auth_token');
+            expect(reloadedToken).to.equal(token);
+          });
           
           // Verify still on authenticated page
           cy.url().should('include', '/app');
@@ -102,25 +114,20 @@ describe('Authentication - Login', () => {
       // Click login button
       cy.get(selectors.auth.loginButton).click();
       
-      // Verify error message is displayed
-      cy.get('body').then(($body) => {
-        // Check for error message using multiple possible selectors
-        const hasErrorMessage = 
-          $body.find(selectors.auth.errorMessage).length > 0 ||
-          $body.find(selectors.common.errorMessage).length > 0 ||
-          $body.text().toLowerCase().includes('error') ||
-          $body.text().toLowerCase().includes('inválid') ||
-          $body.text().toLowerCase().includes('incorrect');
-        
-        expect(hasErrorMessage).to.be.true;
-      });
+      // Wait a moment for the error to appear
+      cy.wait(1000);
+      
+      // Verify error message is displayed - try the data-cy selector first
+      cy.get(selectors.auth.errorMessage, { timeout: 5000 })
+        .should('be.visible')
+        .and('contain.text', 'Credenciales');
       
       // Verify user is NOT redirected (still on login page)
       cy.url().should('include', '/login');
       
       // Verify no token is stored
       cy.window().then((win) => {
-        expect(win.localStorage.getItem('token')).to.be.null;
+        expect(win.localStorage.getItem('auth_token')).to.be.null;
       });
     });
 
@@ -141,7 +148,7 @@ describe('Authentication - Login', () => {
       
       // Verify no token is created
       cy.window().then((win) => {
-        expect(win.localStorage.getItem('token')).to.be.null;
+        expect(win.localStorage.getItem('auth_token')).to.be.null;
       });
     });
 
@@ -162,7 +169,7 @@ describe('Authentication - Login', () => {
       
       // Verify no token is created
       cy.window().then((win) => {
-        expect(win.localStorage.getItem('token')).to.be.null;
+        expect(win.localStorage.getItem('auth_token')).to.be.null;
       });
     });
 

@@ -104,7 +104,7 @@ const CoursesPage = () => {
         )}
       </header>
 
-      {error && <p className="error-text">{error}</p>}
+      {error && <p className="error-text" data-cy="error-message">{error}</p>}
       {isLoading && <p>Cargando…</p>}
 
       <section className="courses-grid" data-cy="course-list">
@@ -137,6 +137,7 @@ const CoursesPage = () => {
                     className="button-tertiary"
                     onClick={() => handleEditCourse(course)}
                     title="Editar curso"
+                    data-cy="edit-course-button"
                   >
                     ✏️
                   </button>
@@ -145,6 +146,7 @@ const CoursesPage = () => {
                     className="button-tertiary danger"
                     onClick={() => handleDeleteCourse(course.id)}
                     title="Eliminar curso"
+                    data-cy="delete-course-button"
                   >
                     🗑️
                   </button>
@@ -155,7 +157,7 @@ const CoursesPage = () => {
         ))}
 
         {courses.length === 0 && !isLoading && (
-          <div className="empty-state">
+          <div className="empty-state" data-cy="empty-state">
             <h3>No hay cursos aún</h3>
             <p>Crea un curso para empezar a asignar temas y textos a tus estudiantes.</p>
           </div>
@@ -182,6 +184,7 @@ const CoursesPage = () => {
                   onChange={handleChange}
                   placeholder="Ej: Taller de Proyectos 2"
                   required
+                  data-cy="course-title-input"
                 />
               </div>
               <div className="field">
@@ -193,16 +196,17 @@ const CoursesPage = () => {
                   onChange={handleChange}
                   rows={4}
                   placeholder="Comparte los objetivos y habilidades que reforzará el curso"
+                  data-cy="course-description-input"
                 />
               </div>
 
-              {error && <p className="error-text">{error}</p>}
+              {error && <p className="error-text" data-cy="error-message">{error}</p>}
 
               <div className="modal-footer">
-                <button type="button" className="button-secondary" onClick={handleCloseModal}>
+                <button type="button" className="button-secondary" onClick={handleCloseModal} data-cy="cancel-button">
                   Cancelar
                 </button>
-                <button type="submit" className="button-primary">
+                <button type="submit" className="button-primary" data-cy="save-course-button">
                   {editingCourse ? 'Actualizar curso' : 'Guardar curso'}
                 </button>
               </div>

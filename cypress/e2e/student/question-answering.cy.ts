@@ -33,67 +33,71 @@ describe('Student Question Answering', () => {
         description: courses.basicCourse.description,
         level: courses.basicCourse.level,
       });
-    });
 
-    cy.get('@createdCourseId').then((courseId) => {
-      testCourseId = String(courseId);
+      cy.get('@createdCourseId').then((courseId) => {
+        testCourseId = String(courseId);
 
-      cy.createTopic(testCourseId, {
-        title: 'Tema de Preguntas E2E',
-        description: 'Tema para pruebas de respuestas',
-        order: 1,
-      });
-    });
-
-    cy.get('@createdTopicId').then((topicId) => {
-      testTopicId = String(topicId);
-
-      cy.fixture('texts').then((texts) => {
-        cy.createText(testTopicId, {
-          title: texts.textWithoutBiases.title,
-          content: texts.textWithoutBiases.content,
-          difficulty: texts.textWithoutBiases.difficulty,
-          estimatedReadingTime: texts.textWithoutBiases.estimatedReadingTime,
-        });
-      });
-    });
-
-    cy.get('@createdTextId').then((textId) => {
-      testTextId = String(textId);
-
-      // Create questions of each type
-      cy.fixture('questions').then((questions) => {
-        // Literal question
-        cy.createQuestion(testTextId, {
-          text: questions.literalQuestion.text,
-          type: questions.literalQuestion.type,
-          hint: questions.literalQuestion.hint,
+        cy.createTopic(testCourseId, {
+          title: 'Tema de Preguntas E2E',
+          description: 'Tema para pruebas de respuestas',
+          order: 1,
         });
 
-        cy.get('@createdQuestionId').then((qId) => {
-          literalQuestionId = String(qId);
-        });
+        cy.get('@createdTopicId').then((topicId) => {
+          testTopicId = String(topicId);
 
-        // Inferential question
-        cy.createQuestion(testTextId, {
-          text: questions.inferentialQuestion.text,
-          type: questions.inferentialQuestion.type,
-          hint: questions.inferentialQuestion.hint,
-        });
+          cy.fixture('texts').then((texts) => {
+            cy.createText(testTopicId, {
+              title: texts.textWithoutBiases.title,
+              content: texts.textWithoutBiases.content,
+              difficulty: texts.textWithoutBiases.difficulty,
+              estimatedReadingTime: texts.textWithoutBiases.estimatedReadingTime,
+            });
 
-        cy.get('@createdQuestionId').then((qId) => {
-          inferencialQuestionId = String(qId);
-        });
+            cy.get('@createdTextId').then((textId) => {
+              testTextId = String(textId);
 
-        // Critical question
-        cy.createQuestion(testTextId, {
-          text: questions.criticalQuestion.text,
-          type: questions.criticalQuestion.type,
-          hint: questions.criticalQuestion.hint,
-        });
+              // Create questions of each type
+              cy.fixture('questions').then((questions) => {
+                // Literal question
+                cy.createQuestion(testTextId, {
+                  text: questions.literalQuestion.text,
+                  type: questions.literalQuestion.type,
+                  hint: questions.literalQuestion.hint,
+                });
 
-        cy.get('@createdQuestionId').then((qId) => {
-          criticaQuestionId = String(qId);
+                cy.get('@createdQuestionId').then((qId) => {
+                  literalQuestionId = String(qId);
+
+                  // Inferential question
+                  cy.createQuestion(testTextId, {
+                    text: questions.inferentialQuestion.text,
+                    type: questions.inferentialQuestion.type,
+                    hint: questions.inferentialQuestion.hint,
+                  });
+
+                  cy.get('@createdQuestionId').then((qId2) => {
+                    inferencialQuestionId = String(qId2);
+
+                    // Critical question
+                    cy.createQuestion(testTextId, {
+                      text: questions.criticalQuestion.text,
+                      type: questions.criticalQuestion.type,
+                      hint: questions.criticalQuestion.hint,
+                    });
+
+                    cy.get('@createdQuestionId').then((qId3) => {
+                      criticaQuestionId = String(qId3);
+
+                      // Enroll student
+                      cy.loginAsStudent();
+                      cy.enrollStudent(testCourseId);
+                    });
+                  });
+                });
+              });
+            });
+          });
         });
       });
     });

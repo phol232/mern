@@ -321,7 +321,7 @@ Cypress.Commands.add('navigateToAvailableCourses', () => {
  */
 Cypress.Commands.add('createCourse', (courseData: CourseData) => {
   cy.window().then((win) => {
-    const token = win.localStorage.getItem('token');
+    const token = win.localStorage.getItem('auth_token');
     
     cy.request({
       method: 'POST',
@@ -352,11 +352,11 @@ Cypress.Commands.add('createCourse', (courseData: CourseData) => {
  */
 Cypress.Commands.add('createTopic', (courseId: string, topicData: TopicData) => {
   cy.window().then((win) => {
-    const token = win.localStorage.getItem('token');
+    const token = win.localStorage.getItem('auth_token');
     
     cy.request({
       method: 'POST',
-      url: `${Cypress.config('baseUrl')}/api/courses/${courseId}/topics`,
+      url: `${Cypress.config('baseUrl')}/api/topics/course/${courseId}`,
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
@@ -382,12 +382,14 @@ Cypress.Commands.add('createTopic', (courseId: string, topicData: TopicData) => 
  * @returns Text ID
  */
 Cypress.Commands.add('createText', (topicId: string, textData: TextData) => {
+  cy.log(`Creating text for topic: ${topicId}`);
+  
   cy.window().then((win) => {
-    const token = win.localStorage.getItem('token');
+    const token = win.localStorage.getItem('auth_token');
     
     cy.request({
       method: 'POST',
-      url: `${Cypress.config('baseUrl')}/api/topics/${topicId}/texts`,
+      url: `${Cypress.config('baseUrl')}/api/texts/save/${topicId}`,
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
@@ -395,13 +397,18 @@ Cypress.Commands.add('createText', (topicId: string, textData: TextData) => {
       body: {
         title: textData.title,
         content: textData.content,
-        difficulty: textData.difficulty || 'intermediate',
-        estimatedReadingTime: textData.estimatedReadingTime || 5,
+        difficulty: textData.difficulty || 'intermedio',
+        estimatedTime: textData.estimatedReadingTime || 5,
+        source: 'E2E Test',
       },
     }).then((response) => {
       expect(response.status).to.be.oneOf([200, 201]);
-      const textId = response.body._id || response.body.id;
+      cy.log(`Response body:`, response.body);
+      // The API returns { success: true, text: { id: ... } }
+      const textId = response.body.text?.id || response.body.text?._id || response.body._id || response.body.id;
       cy.log(`Text created with ID: ${textId}`);
+      expect(textId).to.exist;
+      expect(textId).to.not.equal('undefined');
       cy.wrap(textId).as('createdTextId');
     });
   });
@@ -415,19 +422,34 @@ Cypress.Commands.add('createText', (topicId: string, textData: TextData) => {
  */
 Cypress.Commands.add('createQuestion', (textId: string, questionData: QuestionData) => {
   cy.window().then((win) => {
-    const token = win.localStorage.getItem('token');
+    const token = win.localStorage.getItem('auth_token');
+    
+    // Map question types to skills with correct accents
+    const skillMap: Record<string, string> = {
+      'literal': 'literal',
+      'inferencial': 'inferencial',
+      'critica': 'crítica',
+      'crítica': 'crítica',
+      'aplicacion': 'aplicación',
+      'aplicación': 'aplicación',
+    };
+    
+    const skill = skillMap[questionData.type] || 'inferencial';
+    
+    cy.log(`Creating question for text: ${textId} with skill: ${skill}`);
     
     cy.request({
       method: 'POST',
-      url: `${Cypress.config('baseUrl')}/api/texts/${textId}/questions`,
+      url: `${Cypress.config('baseUrl')}/api/questions`,
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       body: {
-        text: questionData.text,
-        type: questionData.type,
-        hint: questionData.hint || '',
+        prompt: questionData.text,
+        text: textId,
+        type: 'open-ended',
+        skill: skill,
       },
     }).then((response) => {
       expect(response.status).to.be.oneOf([200, 201]);
@@ -444,7 +466,24 @@ Cypress.Commands.add('createQuestion', (textId: string, questionData: QuestionDa
  */
 Cypress.Commands.add('enrollStudent', (courseId: string) => {
   cy.window().then((win) => {
-    const token = win.localStorage.getItem('token');
+    const token = win.localStorage.getItem('auth_token');
+    
+    // Get user data from localStorage to extract student ID
+    const authData = win.localStorage.getItem('critico_auth');
+    let studentId: string | null = null;
+    
+    if (authData) {
+      try {
+        const parsed = JSON.parse(authData);
+        studentId = parsed.user?._id || parsed.user?.id;
+      } catch (e) {
+        cy.log('Failed to parse auth data');
+      }
+    }
+    
+    if (!studentId) {
+      throw new Error('Student ID not found in localStorage');
+    }
     
     cy.request({
       method: 'POST',
@@ -454,11 +493,12 @@ Cypress.Commands.add('enrollStudent', (courseId: string) => {
         'Content-Type': 'application/json',
       },
       body: {
+        studentId: studentId,
         courseId: courseId,
       },
     }).then((response) => {
       expect(response.status).to.be.oneOf([200, 201]);
-      cy.log(`Student enrolled in course: ${courseId}`);
+      cy.log(`Student ${studentId} enrolled in course: ${courseId}`);
     });
   });
 });
@@ -561,7 +601,7 @@ Cypress.Commands.add('verifyEnrollmentSuccess', () => {
  */
 Cypress.Commands.add('cleanupTestData', () => {
   cy.window().then((win) => {
-    const token = win.localStorage.getItem('token');
+    const token = win.localStorage.getItem('auth_token');
     
     if (!token) {
       cy.log('No token found, skipping cleanup');

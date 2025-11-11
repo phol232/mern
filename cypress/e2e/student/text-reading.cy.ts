@@ -30,40 +30,40 @@ describe('Student Text Reading', () => {
         description: courses.basicCourse.description,
         level: courses.basicCourse.level,
       });
-    });
 
-    cy.get('@createdCourseId').then((courseId) => {
-      testCourseId = String(courseId);
+      cy.get('@createdCourseId').then((courseId) => {
+        testCourseId = String(courseId);
 
-      cy.createTopic(testCourseId, {
-        title: 'Tema de Lectura E2E',
-        description: 'Tema para pruebas de lectura',
-        order: 1,
-      });
-    });
+        cy.createTopic(testCourseId, {
+          title: 'Tema de Lectura E2E',
+          description: 'Tema para pruebas de lectura',
+          order: 1,
+        });
 
-    cy.get('@createdTopicId').then((topicId) => {
-      testTopicId = String(topicId);
+        cy.get('@createdTopicId').then((topicId) => {
+          testTopicId = String(topicId);
 
-      cy.fixture('texts').then((texts) => {
-        testTextContent = texts.textWithoutBiases.content;
+          cy.fixture('texts').then((texts) => {
+            testTextContent = texts.textWithoutBiases.content;
 
-        cy.createText(testTopicId, {
-          title: texts.textWithoutBiases.title,
-          content: texts.textWithoutBiases.content,
-          difficulty: texts.textWithoutBiases.difficulty,
-          estimatedReadingTime: texts.textWithoutBiases.estimatedReadingTime,
+            cy.createText(testTopicId, {
+              title: texts.textWithoutBiases.title,
+              content: texts.textWithoutBiases.content,
+              difficulty: texts.textWithoutBiases.difficulty,
+              estimatedReadingTime: texts.textWithoutBiases.estimatedReadingTime,
+            });
+
+            cy.get('@createdTextId').then((textId) => {
+              testTextId = String(textId);
+
+              // Enroll student in the course
+              cy.loginAsStudent();
+              cy.enrollStudent(testCourseId);
+            });
+          });
         });
       });
     });
-
-    cy.get('@createdTextId').then((textId) => {
-      testTextId = String(textId);
-    });
-
-    // Enroll student in the course
-    cy.loginAsStudent();
-    cy.enrollStudent(testCourseId);
   });
 
   after(() => {
