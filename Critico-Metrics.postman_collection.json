@@ -1,0 +1,119 @@
+{
+  "info": {
+    "name": "Critico - Métricas de Optimización",
+    "_postman_id": "critico-metrics-001",
+    "description": "Colección para probar el endpoint de métricas de optimización y emisiones de CO2",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Calcular Métricas (Valores Personalizados)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"before\": {\n    \"backend\": 500,\n    \"frontend\": 150,\n    \"mongo\": 1750,\n    \"mongoExpress\": 250\n  },\n  \"after\": {\n    \"backend\": 74,\n    \"frontend\": 10,\n    \"mongo\": 110,\n    \"mongoExpress\": 0\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:4000/api/metrics/optimization",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4000",
+          "path": ["api", "metrics", "optimization"]
+        },
+        "description": "Calcula métricas de optimización con valores personalizados de RAM antes y después"
+      },
+      "response": []
+    },
+    {
+      "name": "Obtener Métricas por Defecto (GET)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:4000/api/metrics/optimization",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4000",
+          "path": ["api", "metrics", "optimization"]
+        },
+        "description": "Obtiene métricas usando valores predeterminados del sistema"
+      },
+      "response": []
+    },
+    {
+      "name": "Calcular Métricas (Body Vacío)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:4000/api/metrics/optimization",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4000",
+          "path": ["api", "metrics", "optimization"]
+        },
+        "description": "Calcula métricas con valores por defecto enviando un body vacío"
+      },
+      "response": []
+    },
+    {
+      "name": "Ejemplo con Valores Diferentes",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"before\": {\n    \"backend\": 800,\n    \"frontend\": 200,\n    \"mongo\": 2000,\n    \"mongoExpress\": 300\n  },\n  \"after\": {\n    \"backend\": 100,\n    \"frontend\": 15,\n    \"mongo\": 150,\n    \"mongoExpress\": 0\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:4000/api/metrics/optimization",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4000",
+          "path": ["api", "metrics", "optimization"]
+        },
+        "description": "Ejemplo con valores diferentes para comparar optimizaciones"
+      },
+      "response": []
+    }
+  ]
+}

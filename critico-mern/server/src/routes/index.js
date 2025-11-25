@@ -10,6 +10,7 @@ const adminRoutes = require('./admin.routes');
 const enrollmentRoutes = require('./enrollment.routes');
 const attemptRoutes = require('./attempt.routes');
 const chatbotRoutes = require('./chatbot.routes');
+const metricsRoutes = require('./metrics.routes');
 
 const router = express.Router();
 
@@ -24,5 +25,6 @@ router.use('/admin', adminRoutes);
 router.use('/enrollments', enrollmentRoutes);
 router.use('/attempts', attemptRoutes);
 router.use('/chatbot', chatbotRoutes);
+router.use('/metrics', metricsRoutes);
 
 module.exports = router;
