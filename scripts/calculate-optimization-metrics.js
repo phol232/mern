@@ -15,22 +15,22 @@ const METRICS = {
   GZIP_SAVINGS_FACTOR: 0.7, // 70% de ahorro estimado
 };
 
-// Consumo ANTES de optimización (MB)
+// Consumo ANTES de optimización (MB) - Desarrollo sin límites
 const BEFORE = {
-  backend: 500,
-  frontend: 150,
-  mongo: 1750,
-  mongoExpress: 250,
-  total: 2650,
+  backend: 60,
+  frontend: 87,
+  mongo: 266,
+  mongoExpress: 103,
+  total: 516,
 };
 
-// Consumo DESPUÉS de optimización (MB)
+// Consumo DESPUÉS de optimización (MB) - Producción con límites
 const AFTER = {
-  backend: 74,
-  frontend: 10,
-  mongo: 110,
+  backend: 109,
+  frontend: 11,
+  mongo: 93,
   mongoExpress: 0, // No se usa en producción
-  total: 194,
+  total: 213,
 };
 
 function calculateMetrics() {

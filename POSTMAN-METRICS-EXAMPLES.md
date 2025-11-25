@@ -16,15 +16,15 @@ Content-Type: application/json
 
 {
   "before": {
-    "backend": 500,
-    "frontend": 150,
-    "mongo": 1750,
-    "mongoExpress": 250
+    "backend": 60,
+    "frontend": 87,
+    "mongo": 266,
+    "mongoExpress": 103
   },
   "after": {
-    "backend": 74,
-    "frontend": 10,
-    "mongo": 110,
+    "backend": 109,
+    "frontend": 11,
+    "mongo": 93,
     "mongoExpress": 0
   }
 }
@@ -35,48 +35,48 @@ Content-Type: application/json
 {
   "status": "Green Software Optimized",
   "metrics": {
-    "ram_before_mb": 2650,
-    "ram_after_mb": 194,
-    "ram_saved_mb": 2456,
-    "percentage_saved": "92.64%",
-    "emissions_per_MB_base": "0.4017 gCO2e",
-    "emissions_saved_per_hour": "0.9866 gCO2e",
-    "emissions_saved_per_day": "23.6784 gCO2e",
-    "emissions_saved_per_month": "710.35 gCO2e",
-    "emissions_saved_per_year": "8642.46 gCO2e",
-    "emissions_saved_by_gzip": "0.2812 gCO2e (Estimado)"
+    "ram_before_mb": 516,
+    "ram_after_mb": 213,
+    "ram_saved_mb": 303,
+    "percentage_saved": "58.72%",
+    "emissions_per_MB_base": "0.0004 gCO2e",
+    "emissions_saved_per_hour": "0.1217 gCO2e",
+    "emissions_saved_per_day": "2.9208 gCO2e",
+    "emissions_saved_per_month": "87.62 gCO2e",
+    "emissions_saved_per_year": "1066.09 gCO2e",
+    "emissions_saved_by_gzip": "746.26 gCO2e (Estimado)"
   },
   "message": "Servidor optimizado con compresión Gzip para reducir huella de carbono.",
   "breakdown": {
     "backend": {
-      "before": "500MB",
-      "after": "74MB",
-      "saved": "426MB",
-      "percentage": "85.2%"
+      "before": "60MB",
+      "after": "109MB",
+      "saved": "-49MB",
+      "percentage": "-81.7%"
     },
     "frontend": {
-      "before": "150MB",
-      "after": "10MB",
-      "saved": "140MB",
-      "percentage": "93.3%"
+      "before": "87MB",
+      "after": "11MB",
+      "saved": "76MB",
+      "percentage": "87.4%"
     },
     "mongo": {
-      "before": "1750MB",
-      "after": "110MB",
-      "saved": "1640MB",
-      "percentage": "93.7%"
+      "before": "266MB",
+      "after": "93MB",
+      "saved": "173MB",
+      "percentage": "65.0%"
     },
     "mongoExpress": {
-      "before": "250MB",
+      "before": "103MB",
       "after": "0MB (disabled in production)",
-      "saved": "250MB",
+      "saved": "103MB",
       "percentage": "100%"
     }
   },
   "equivalencies": {
-    "trees_planted_equivalent": "0.39 árboles/año",
-    "km_driven_saved": "36.8 km en auto/año",
-    "smartphones_charged": "1057 cargas/año"
+    "trees_planted_equivalent": "0.05 árboles/año",
+    "km_driven_saved": "4.54 km en auto/año",
+    "smartphones_charged": "130 cargas/año"
   }
 }
 ```

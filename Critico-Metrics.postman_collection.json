@@ -19,7 +19,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"before\": {\n    \"backend\": 500,\n    \"frontend\": 150,\n    \"mongo\": 1750,\n    \"mongoExpress\": 250\n  },\n  \"after\": {\n    \"backend\": 74,\n    \"frontend\": 10,\n    \"mongo\": 110,\n    \"mongoExpress\": 0\n  }\n}",
+          "raw": "{\n  \"before\": {\n    \"backend\": 60,\n    \"frontend\": 87,\n    \"mongo\": 266,\n    \"mongoExpress\": 103\n  },\n  \"after\": {\n    \"backend\": 109,\n    \"frontend\": 11,\n    \"mongo\": 93,\n    \"mongoExpress\": 0\n  }\n}",
           "options": {
             "raw": {
               "language": "json"

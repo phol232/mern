@@ -37,21 +37,23 @@ Se han implementado optimizaciones significativas en `docker-compose.yml` para r
 
 ## Consumo Total de RAM
 
-### Antes (sin límites):
-- Backend: ~400-600MB
-- Frontend: ~100-200MB
-- MongoDB: ~1.5-2GB
-- Mongo Express: ~200-300MB
-- **TOTAL**: ~2.2-3.1GB
+### Antes (desarrollo sin límites):
+- Backend: ~60MB
+- Frontend: ~87MB
+- MongoDB: ~266MB
+- Mongo Express: ~103MB
+- **TOTAL**: ~516MB
 
-### Después (con límites):
-- Backend: 256-512MB
-- Frontend: 64-128MB
-- MongoDB: 512MB-1GB
-- Mongo Express: 0MB (solo con profile debug)
-- **TOTAL**: ~832MB-1.64GB
+### Después (producción con límites):
+- Backend: ~109MB (límite 512MB)
+- Frontend: ~11MB (límite 128MB)
+- MongoDB: ~93MB (límite 1GB)
+- Mongo Express: 0MB (deshabilitado en producción)
+- **TOTAL**: ~213MB
 
-**Ahorro estimado**: 40-50% de RAM
+**Ahorro real**: ~303MB (58.7% menos RAM)
+
+**Nota**: El backend usa más RAM en producción porque carga todos los módulos y rutas, pero está protegido por el límite de 512MB.
 
 ## Cómo Usar
 

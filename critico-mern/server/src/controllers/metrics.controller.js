@@ -17,21 +17,21 @@ exports.calculateOptimizationMetrics = (req, res) => {
   try {
     const { before, after } = req.body;
 
-    // Valores por defecto si no se envían
+    // Valores por defecto si no se envían (basados en mediciones reales)
     const BEFORE = before || {
-      backend: 500,
-      frontend: 150,
-      mongo: 1750,
-      mongoExpress: 250,
-      total: 2650,
+      backend: 60,
+      frontend: 87,
+      mongo: 266,
+      mongoExpress: 103,
+      total: 516,
     };
 
     const AFTER = after || {
-      backend: 74,
-      frontend: 10,
-      mongo: 110,
+      backend: 109,
+      frontend: 11,
+      mongo: 93,
       mongoExpress: 0,
-      total: 194,
+      total: 213,
     };
 
     // Calcular totales si no vienen
