@@ -7,9 +7,11 @@
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "test": "jest --runInBand",
+    "test:unit": "jest --testPathPattern=tests/unit --runInBand",
     "test:watch": "jest --watch",
     "test:coverage": "jest --runInBand --coverage",
     "test:ci": "jest --runInBand --coverage --ci",
+    "test:integration": "jest --config jest.integration.config.js --runInBand",
     "db:structure": "node scripts/seed.js",
     "db:reset": "node scripts/seed.js --drop",
     "db:seed": "node scripts/seed-data.js"
